@@ -48,7 +48,7 @@ pub enum CPInfo {
         reference_index: u16,
     },
     #[deku(id = "16")]
-    MethodType { tag: u8, descriptor_index: u16 },
+    MethodType { descriptor_index: u16 },
     #[deku(id = "17")]
     Dynamic {
         bootstrap_method_attr_index: u16,
