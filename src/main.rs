@@ -9,12 +9,12 @@ use deku::DekuContainerRead;
 use std::fs::read;
 
 struct Config {
-    classpath: &'static str,
+    classpath: &'static [&'static str],
     main_class: &'static str,
 }
 
 static CONFIG: Config = Config {
-    classpath: "./test",
+    classpath: &["./test", "./modules/java.base"],
     main_class: "Test",
 };
 

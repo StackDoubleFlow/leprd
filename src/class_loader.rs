@@ -59,20 +59,23 @@ fn cp_class_name(cp: &[CPInfo], idx: u16) -> String {
 }
 
 pub fn load_class_bootstrap(name: &str) -> ClassId {
-    let classpath = CONFIG.classpath;
     // let mut method_area = METHOD_AREA.lock().unwrap();
 
     // if method_area.class_map.contains_key(name) {
     //     panic!("LinkageError");
     // }
 
-    let mut path = PathBuf::from(classpath);
-    path.push(name);
-    path.set_extension("class");
-    dbg!(&path);
-
-    let data = fs::read(path).expect("ClassNotFoundException");
-    let class_file = ClassFile::from_bytes((&data, 0)).unwrap().1;
+    let data = CONFIG.classpath.iter().find_map(|classpath| {
+        let mut path = PathBuf::from(classpath);
+        path.push(name);
+        path.set_extension("class");
+        if path.exists() {
+            Some(fs::read(path).unwrap())
+        } else {
+            None
+        }
+    }).expect("ClassNotFoundException");
+    let class_file = ClassFile::from_bytes((&data, 0)).expect("ClassFormatError").1;
 
     assert!(class_file.magic == 0xCAFEBABE);
     assert!((45..62).contains(&class_file.major_version));
@@ -87,7 +90,7 @@ pub fn load_class_bootstrap(name: &str) -> ClassId {
     let class = Class {
         defining_loader: ClassLoader::Bootstrap,
         name: name.clone(),
-        super_class
+        super_class,
     };
 
     let mut method_area = METHOD_AREA.lock().unwrap();
