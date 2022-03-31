@@ -1,0 +1,3 @@
+struct Thread {}
+
+impl Thread {}

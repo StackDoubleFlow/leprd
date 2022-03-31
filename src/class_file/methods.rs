@@ -1,5 +1,5 @@
-use deku::prelude::*;
 use super::attributes::AttributeInfo;
+use deku::prelude::*;
 
 #[derive(DekuRead, Debug)]
 #[deku(endian = "endian", ctx = "endian: deku::ctx::Endian")]

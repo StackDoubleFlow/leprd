@@ -1,5 +1,5 @@
-use deku::prelude::*;
 use super::attributes::AttributeInfo;
+use deku::prelude::*;
 
 #[derive(DekuRead, Debug)]
 #[deku(endian = "endian", ctx = "endian: deku::ctx::Endian")]
@@ -9,5 +9,5 @@ pub struct FieldInfo {
     pub descriptor_index: u16,
     pub attributes_count: u16,
     #[deku(count = "attributes_count")]
-    pub attributes: Vec<AttributeInfo>
+    pub attributes: Vec<AttributeInfo>,
 }

@@ -1,13 +1,14 @@
+mod attributes;
 mod constant_pool;
 mod fields;
 mod methods;
-mod attributes;
 
 use deku::prelude::*;
-use constant_pool::CPInfo;
-use fields::FieldInfo;
-use methods::MethodInfo;
-use attributes::AttributeInfo;
+
+pub use attributes::AttributeInfo;
+pub use constant_pool::CPInfo;
+pub use fields::FieldInfo;
+pub use methods::MethodInfo;
 
 // Note: these are access modifiers from classes, fields, and methods mixed
 // pub const ACC_PUBLIC: u16 = 0x0001;

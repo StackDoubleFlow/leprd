@@ -11,31 +11,17 @@ pub enum CPInfo {
         bytes: Vec<u8>,
     },
     #[deku(id = "3")]
-    Integer {
-        bytes: u32,
-    },
+    Integer { bytes: u32 },
     #[deku(id = "4")]
-    Float {
-        bytes: u32,
-    },
+    Float { bytes: u32 },
     #[deku(id = "5")]
-    Long {
-        high_bytes: u32,
-        low_bytes: u32,
-    },
+    Long { high_bytes: u32, low_bytes: u32 },
     #[deku(id = "6")]
-    Double {
-        high_bytes: u32,
-        low_bytes: u32,
-    },
+    Double { high_bytes: u32, low_bytes: u32 },
     #[deku(id = "7")]
-    Class {
-        name_index: u16,
-    },
+    Class { name_index: u16 },
     #[deku(id = "8")]
-    String {
-        string_index: u16,
-    },
+    String { string_index: u16 },
     #[deku(id = "9")]
     Fieldref {
         class_index: u16,
@@ -45,13 +31,11 @@ pub enum CPInfo {
     Methodref {
         class_index: u16,
         name_and_type_index: u16,
-
     },
     #[deku(id = "11")]
     InterfaceMethodref {
         class_index: u16,
         name_and_type_index: u16,
-
     },
     #[deku(id = "12")]
     NameAndType {
@@ -64,28 +48,21 @@ pub enum CPInfo {
         reference_index: u16,
     },
     #[deku(id = "16")]
-    MethodType {
-        tag: u8,
-        descriptor_index: u16,
-    },
+    MethodType { tag: u8, descriptor_index: u16 },
     #[deku(id = "17")]
     Dynamic {
         bootstrap_method_attr_index: u16,
-        name_and_type_index: u16
+        name_and_type_index: u16,
     },
     #[deku(id = "18")]
     InvokeDynamic {
         bootstrap_method_attr_index: u16,
-        name_and_type_index: u16
+        name_and_type_index: u16,
     },
     #[deku(id = "19")]
-    Module {
-        name_index: u16
-    },
+    Module { name_index: u16 },
     #[deku(id = "20")]
-    Package {
-        name_index: u16
-    },
+    Package { name_index: u16 },
 }
 
 #[test]
@@ -99,18 +76,17 @@ fn cp_test() {
     }
     let bytes = [0x00, 0x03, 0x07, 0x00, 0x00, 0x09, 0x00, 0x01, 0x00, 0x02];
     let cp = CPTest::from_bytes((&bytes, 0)).unwrap().1;
-    assert_eq!(cp, CPTest {
-        constant_pool_count: 3,
-        constant_pool: vec![
-            CPInfo::Class {
-                name_index: 0,
-            },
-            CPInfo::Fieldref {
-                class_index: 1,
-                name_and_type_index: 2,
-            }
-        ]
-    });
-
-
+    assert_eq!(
+        cp,
+        CPTest {
+            constant_pool_count: 3,
+            constant_pool: vec![
+                CPInfo::Class { name_index: 0 },
+                CPInfo::Fieldref {
+                    class_index: 1,
+                    name_and_type_index: 2,
+                }
+            ]
+        }
+    );
 }
