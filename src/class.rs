@@ -1,4 +1,5 @@
 use crate::class_file::ConstantPool;
+use crate::class_file::attributes::CodeAttribute;
 use crate::class_loader::{ClassId, ClassLoader};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -10,7 +11,7 @@ pub struct Field {
 
 #[derive(Debug)]
 pub struct Method {
-    pub code: Option<Arc<[u8]>>,
+    pub code: Option<Arc<CodeAttribute>>,
     pub access_flags: u16,
 }
 

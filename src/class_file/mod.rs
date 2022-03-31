@@ -1,7 +1,7 @@
-mod attributes;
-mod constant_pool;
-mod fields;
-mod methods;
+pub mod attributes;
+pub mod constant_pool;
+pub mod fields;
+pub mod methods;
 
 use deku::prelude::*;
 

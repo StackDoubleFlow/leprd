@@ -1,5 +1,7 @@
 #![feature(once_cell)]
 
+use crate::jvm::Thread;
+
 mod class;
 mod class_file;
 mod class_loader;
@@ -18,5 +20,6 @@ static CONFIG: Config = Config {
 fn main() {
     // class_loader::load_class_bootstrap("module-info");
     let class = class_loader::load_class_bootstrap(CONFIG.main_class);
-    dbg!(&class_loader::method_area().classes[class]);
+    let mut thread = Thread::new(class, "main");
+    thread.run();
 }

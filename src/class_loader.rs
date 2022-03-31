@@ -6,7 +6,7 @@ use id_arena::{Arena, Id};
 use std::collections::HashMap;
 use std::lazy::SyncLazy;
 use std::path::PathBuf;
-use std::sync::{Mutex, MutexGuard};
+use std::sync::{Mutex, MutexGuard, Arc};
 use std::{fs, str};
 
 static METHOD_AREA: SyncLazy<Mutex<MethodArea>> = SyncLazy::new(Default::default);
@@ -89,7 +89,7 @@ pub fn load_class_bootstrap(name: &str) -> ClassId {
         for attr in method.attributes {
             let attr_name = class_file.constant_pool.utf8(attr.attribute_name_index);
             if attr_name == "Code" {
-                code = Some(attr.info.into());
+                code = Some(Arc::new(attr.code()));
             }
         }
 
