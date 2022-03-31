@@ -1,4 +1,3 @@
-use crate::class_file::CPInfo;
 use id_arena::{Arena, Id};
 use std::collections::HashMap;
 use std::lazy::SyncLazy;
@@ -31,32 +30,20 @@ struct MethodArea {
 pub struct Class {
     defining_loader: ClassLoader,
     name: String,
-    super_class: ClassId,
+    super_class: Option<ClassId>,
 }
 
 pub fn resolve_class(name: &str) -> ClassId {
     let method_area = METHOD_AREA.lock().unwrap();
-    if let Some(&id) = method_area.class_map.get(name) {
-        id
-    } else {
-        // TODO: Load using correct class loader
-        load_class_bootstrap(name)
+    let id = method_area.class_map.get(name).cloned();
+    drop(method_area);
+    match id {
+        Some(id) => id,
+        None => load_class_bootstrap(name),
     }
 }
 
-fn cp_utf8(cp: &[CPInfo], idx: u16) -> String {
-    match &cp[idx as usize - 1] {
-        CPInfo::Utf8 { bytes, .. } => String::from_utf8(bytes.clone()).unwrap(),
-        _ => panic!("ClassFormatError"),
-    }
-}
 
-fn cp_class_name(cp: &[CPInfo], idx: u16) -> String {
-    match cp[idx as usize - 1] {
-        CPInfo::Class { name_index } => cp_utf8(cp, name_index),
-        _ => panic!("ClassFormatError"),
-    }
-}
 
 pub fn load_class_bootstrap(name: &str) -> ClassId {
     // let mut method_area = METHOD_AREA.lock().unwrap();
@@ -70,6 +57,7 @@ pub fn load_class_bootstrap(name: &str) -> ClassId {
         path.push(name);
         path.set_extension("class");
         if path.exists() {
+            dbg!(&path);
             Some(fs::read(path).unwrap())
         } else {
             None
@@ -80,12 +68,14 @@ pub fn load_class_bootstrap(name: &str) -> ClassId {
     assert!(class_file.magic == 0xCAFEBABE);
     assert!((45..62).contains(&class_file.major_version));
 
-    let super_name = cp_class_name(&class_file.constant_pool, class_file.super_class);
-    let super_class = resolve_class(&super_name);
-
-    let name = cp_class_name(&class_file.constant_pool, class_file.this_class);
-
-    dbg!(class_file);
+    let super_class = if class_file.super_class > 0 {
+        let super_name = class_file.constant_pool.class_name(class_file.super_class);
+        Some(resolve_class(&super_name))
+    } else {
+        // Super class should only be None for Object
+        None
+    };
+    let name = class_file.constant_pool.class_name(class_file.this_class);
 
     let class = Class {
         defining_loader: ClassLoader::Bootstrap,

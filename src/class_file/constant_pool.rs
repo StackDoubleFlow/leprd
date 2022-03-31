@@ -1,4 +1,47 @@
+use deku::bitvec::{BitSlice, Msb0};
 use deku::prelude::*;
+
+#[derive(DekuRead, Debug)]
+#[deku(endian = "endian", ctx = "endian: deku::ctx::Endian")]
+pub struct ConstantPool {
+    pub count: u16,
+    #[deku(reader = "ConstantPool::read_table(deku::rest, *count, endian)")]
+    pub table: Vec<CPInfo>
+}
+
+impl ConstantPool {
+    fn read_table(
+        mut rest: &BitSlice<Msb0, u8>,
+        count: u16,
+        endian: deku::ctx::Endian,
+    ) -> Result<(&BitSlice<Msb0, u8>, Vec<CPInfo>), DekuError> {
+        let mut table = Vec::new();
+        while table.len() < count as usize - 1 {
+            let (new_rest, cp_info) = CPInfo::read(rest, endian)?;
+            rest = new_rest;
+            let long = matches!(cp_info, CPInfo::Long { .. } | CPInfo::Double { .. });
+            table.push(cp_info);
+            if long {
+                table.push(CPInfo::Unusable);
+            }
+        }
+        Ok((rest, table))
+    }
+
+    pub fn utf8(&self, idx: u16) -> String {
+        match &self.table[idx as usize - 1] {
+            CPInfo::Utf8 { bytes, .. } => String::from_utf8(bytes.clone()).unwrap(),
+            _ => panic!("ClassFormatError"),
+        }
+    }
+    
+    pub fn class_name(&self, idx: u16) -> String {
+        match self.table[idx as usize - 1] {
+            CPInfo::Class { name_index } => self.utf8(name_index),
+            _ => panic!("ClassFormatError"),
+        }
+    }
+}
 
 #[derive(DekuRead, Debug, PartialEq)]
 #[deku(endian = "endian", ctx = "endian: deku::ctx::Endian")]
@@ -63,6 +106,14 @@ pub enum CPInfo {
     Module { name_index: u16 },
     #[deku(id = "20")]
     Package { name_index: u16 },
+    #[deku(id = "0", reader = "CPInfo::unusable_tag()")]
+    Unusable,
+}
+
+impl CPInfo {
+    fn unusable_tag() -> ! {
+        panic!("ClassFormatError");
+    }
 }
 
 #[test]

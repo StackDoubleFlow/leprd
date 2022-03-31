@@ -19,6 +19,7 @@ static CONFIG: Config = Config {
 };
 
 fn main() {
+    // class_loader::load_class_bootstrap("module-info");
     let class = class_loader::load_class_bootstrap(CONFIG.main_class);
     dbg!(class);
 }
