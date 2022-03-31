@@ -31,7 +31,10 @@ pub struct Class {
     defining_loader: ClassLoader,
     name: String,
     super_class: Option<ClassId>,
+    interfaces: Vec<ClassId>,
+    access_flags: u16,
 }
+
 
 pub fn resolve_class(name: &str) -> ClassId {
     let method_area = METHOD_AREA.lock().unwrap();
@@ -42,8 +45,6 @@ pub fn resolve_class(name: &str) -> ClassId {
         None => load_class_bootstrap(name),
     }
 }
-
-
 
 pub fn load_class_bootstrap(name: &str) -> ClassId {
     // let mut method_area = METHOD_AREA.lock().unwrap();
@@ -77,14 +78,30 @@ pub fn load_class_bootstrap(name: &str) -> ClassId {
     };
     let name = class_file.constant_pool.class_name(class_file.this_class);
 
+    let mut interfaces = Vec::new();
+    for interface in class_file.interfaces {
+        let interface_name = class_file.constant_pool.class_name(interface);
+        interfaces.push(resolve_class(&interface_name));
+    }
+
     let class = Class {
         defining_loader: ClassLoader::Bootstrap,
         name: name.clone(),
         super_class,
+        interfaces,
+        access_flags: class_file.access_flags,
     };
 
     let mut method_area = METHOD_AREA.lock().unwrap();
     let id = method_area.classes.alloc(class);
     method_area.class_map.insert(name, id);
+
+    let class = &method_area.classes[id];
+    for &interface in &class.interfaces {
+        if interface == id {
+            panic!("ClassCircularityError");
+        }
+    }
+
     id
 }
