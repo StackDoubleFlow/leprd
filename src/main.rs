@@ -20,6 +20,7 @@ static CONFIG: Config = Config {
 fn main() {
     // class_loader::load_class_bootstrap("module-info");
     let class = class_loader::load_class_bootstrap(CONFIG.main_class);
-    let mut thread = Thread::new(class, "main");
-    thread.run();
+    dbg!(class_loader::method_area());
+    // let mut thread = Thread::new(class, "main");
+    // thread.run();
 }

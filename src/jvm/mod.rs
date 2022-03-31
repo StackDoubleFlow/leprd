@@ -1,31 +1,28 @@
 use crate::class_file::attributes::CodeAttribute;
-use crate::class_loader::{method_area, ClassId};
+use crate::class_loader::{method_area, ClassId, MethodId};
 use std::sync::Arc;
 
 struct StackFrame {
-    class: ClassId,
-    method: String,
+    method: MethodId,
     return_pc: usize,
     operand_stack: Vec<u8>,
 }
 
 pub struct Thread {
-    class: ClassId,
-    method: String,
+    method: MethodId,
     code: Arc<CodeAttribute>,
     pc: usize,
     operand_stack: Vec<u8>,
 }
 
 impl Thread {
-    pub fn new(entry_class: ClassId, entry_method: &str) -> Thread {
-        let code = method_area().classes[entry_class].methods[entry_method]
+    pub fn new(entry_method: MethodId) -> Thread {
+        let code = method_area().methods[entry_method]
             .code
             .clone()
             .unwrap();
         Thread {
-            class: entry_class,
-            method: entry_method.to_string(),
+            method: entry_method,
             code,
             pc: 0,
             operand_stack: Vec::new(),

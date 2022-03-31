@@ -17,8 +17,8 @@ pub fn method_area() -> MutexGuard<'static, MethodArea> {
 }
 
 pub type ClassId = Id<Class>;
-// type MethodId = Id<Method>;
-// type FieldId = Id<Field>;
+pub type MethodId = Id<Method>;
+pub type FieldId = Id<Field>;
 
 #[derive(Debug)]
 pub enum ClassLoader {
@@ -26,10 +26,12 @@ pub enum ClassLoader {
     UserDefined(/* TODO */),
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct MethodArea {
     pub classes: Arena<Class>,
     pub class_map: HashMap<String, ClassId>,
+    pub methods: Arena<Method>,
+    pub fields: Arena<Field>,
 }
 
 pub fn resolve_class(name: &str) -> ClassId {
@@ -82,9 +84,10 @@ pub fn load_class_bootstrap(name: &str) -> ClassId {
         interfaces.push(resolve_class(&interface_name));
     }
 
-    let mut methods = HashMap::new();
+    let mut methods = Vec::new();
     for method in class_file.methods {
         let name = class_file.constant_pool.utf8(method.name_index);
+        let descriptor = class_file.constant_pool.utf8(method.descriptor_index);
         let mut code = None;
         for attr in method.attributes {
             let attr_name = class_file.constant_pool.utf8(attr.attribute_name_index);
@@ -92,14 +95,13 @@ pub fn load_class_bootstrap(name: &str) -> ClassId {
                 code = Some(Arc::new(attr.code()));
             }
         }
-
-        methods.insert(
+        let id = method_area().methods.alloc(Method {
             name,
-            Method {
-                access_flags: method.access_flags,
-                code,
-            },
-        );
+            descriptor,
+            access_flags: method.access_flags,
+            code,
+        });
+        methods.push(id);
     }
 
     let mut fields = HashMap::new();
@@ -119,6 +121,7 @@ pub fn load_class_bootstrap(name: &str) -> ClassId {
         super_class,
         interfaces,
         methods,
+        fields: vec![], // TODO
         access_flags: class_file.access_flags,
         constant_pool: class_file.constant_pool,
     };
