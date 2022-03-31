@@ -6,7 +6,7 @@ use deku::prelude::*;
 pub struct ConstantPool {
     pub count: u16,
     #[deku(reader = "ConstantPool::read_table(deku::rest, *count, endian)")]
-    pub table: Vec<CPInfo>
+    pub table: Vec<CPInfo>,
 }
 
 impl ConstantPool {
@@ -34,7 +34,7 @@ impl ConstantPool {
             _ => panic!("ClassFormatError"),
         }
     }
-    
+
     pub fn class_name(&self, idx: u16) -> String {
         match self.table[idx as usize - 1] {
             CPInfo::Class { name_index } => self.utf8(name_index),
