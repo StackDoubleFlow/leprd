@@ -1,6 +1,7 @@
-use crate::class::{Class, Field, Method};
+use crate::class::{Class, Field, Method, Reference};
 use crate::class_file::ClassFile;
 use crate::CONFIG;
+use crate::class_file::constant_pool::CPInfo;
 use deku::DekuContainerRead;
 use id_arena::{Arena, Id};
 use std::collections::HashMap;
@@ -84,6 +85,9 @@ pub fn load_class_bootstrap(name: &str) -> ClassId {
         interfaces.push(resolve_class(&interface_name));
     }
 
+    // No new classes can be loaded after this point
+    let class_id = method_area().classes.next_id();
+
     let mut methods = Vec::new();
     for method in class_file.methods {
         let name = class_file.constant_pool.utf8(method.name_index);
@@ -96,6 +100,7 @@ pub fn load_class_bootstrap(name: &str) -> ClassId {
             }
         }
         let id = method_area().methods.alloc(Method {
+            defining_class: class_id,
             name,
             descriptor,
             access_flags: method.access_flags,
@@ -104,24 +109,35 @@ pub fn load_class_bootstrap(name: &str) -> ClassId {
         methods.push(id);
     }
 
-    let mut fields = HashMap::new();
+    let mut fields = Vec::new();
     for field in class_file.fields {
         let name = class_file.constant_pool.utf8(field.name_index);
-        fields.insert(
+        let id = method_area().fields.alloc(Field {
             name,
-            Field {
-                access_flags: field.access_flags,
-            },
-        );
+            defining_class: class_id,
+            access_flags: field.access_flags,
+        });
+        fields.push(id);
+    }
+
+    let mut references = HashMap::new();
+    for (i, entry) in class_file.constant_pool.table.iter().enumerate() {
+        match entry {
+            CPInfo::Fieldref { .. } | CPInfo::Methodref { .. } | CPInfo::Class { .. } => {
+                references.insert(i, Reference::Unresolved);
+            }
+            _ => {}
+        }
     }
 
     let class = Class {
         defining_loader: ClassLoader::Bootstrap,
+        references,
         name: name.clone(),
         super_class,
         interfaces,
         methods,
-        fields: vec![], // TODO
+        fields,
         access_flags: class_file.access_flags,
         constant_pool: class_file.constant_pool,
     };
