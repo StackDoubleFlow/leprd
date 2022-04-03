@@ -1,13 +1,13 @@
 use crate::class::{Class, Field, Method, Reference};
+use crate::class_file::constant_pool::CPInfo;
 use crate::class_file::ClassFile;
 use crate::CONFIG;
-use crate::class_file::constant_pool::CPInfo;
 use deku::DekuContainerRead;
 use id_arena::{Arena, Id};
 use std::collections::HashMap;
 use std::lazy::SyncLazy;
 use std::path::PathBuf;
-use std::sync::{Mutex, MutexGuard, Arc};
+use std::sync::{Arc, Mutex, MutexGuard};
 use std::{fs, str};
 
 static METHOD_AREA: SyncLazy<Mutex<MethodArea>> = SyncLazy::new(Default::default);
@@ -124,7 +124,7 @@ pub fn load_class_bootstrap(name: &str) -> ClassId {
     for (i, entry) in class_file.constant_pool.table.iter().enumerate() {
         match entry {
             CPInfo::Fieldref { .. } | CPInfo::Methodref { .. } | CPInfo::Class { .. } => {
-                references.insert(i, Reference::Unresolved);
+                references.insert(i as u16, Reference::Unresolved);
             }
             _ => {}
         }

@@ -1,6 +1,6 @@
 #![feature(once_cell)]
 
-use crate::jvm::Thread;
+use crate::{jvm::Thread, class::find_method};
 
 mod class;
 mod class_file;
@@ -20,7 +20,7 @@ static CONFIG: Config = Config {
 fn main() {
     // class_loader::load_class_bootstrap("module-info");
     let class = class_loader::load_class_bootstrap(CONFIG.main_class);
-    dbg!(class_loader::method_area());
-    // let mut thread = Thread::new(class, "main");
-    // thread.run();
+    let method = find_method(class, "main", "([Ljava/lang/String;)V").expect("Could not find main method");
+    let mut thread = Thread::new(method);
+    thread.run();
 }

@@ -41,6 +41,23 @@ impl ConstantPool {
             _ => panic!("ClassFormatError"),
         }
     }
+
+    pub fn any_ref(&self, idx: u16) -> (u16, u16) {
+        match self.table[idx as usize - 1] {
+            CPInfo::Fieldref { class_index, name_and_type_index } => (class_index, name_and_type_index),
+            CPInfo::Methodref { class_index, name_and_type_index } => (class_index, name_and_type_index),
+            CPInfo::InterfaceMethodref { class_index, name_and_type_index } => (class_index, name_and_type_index),
+            _ => unreachable!()
+        }
+    }
+
+    // Read NameAndType entry
+    pub fn nat(&self, idx: u16) -> (String, String) {
+        match self.table[idx as usize - 1] {
+            CPInfo::NameAndType { name_index, descriptor_index } => (self.utf8(name_index), self.utf8(descriptor_index)),
+            _ => unreachable!()
+        }
+    }
 }
 
 #[derive(DekuRead, Debug, PartialEq)]

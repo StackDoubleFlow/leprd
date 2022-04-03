@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 deku = "0.13"
 id-arena = "2"
+byteorder = "1"
