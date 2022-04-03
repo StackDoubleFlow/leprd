@@ -43,6 +43,38 @@ pub fn resolve_class(name: &str) -> ClassId {
     }
 }
 
+pub fn resolve_method(class: ClassId, name: &str, descriptor: &str) -> MethodId {
+    // TODO: Recursive method lookup
+    // 5.4.3.3. Method Resolution
+    let method_area = method_area();
+    let class = &method_area.classes[class];
+    class
+        .methods
+        .iter()
+        .copied()
+        .find(|&id| {
+            let method = &method_area.methods[id];
+            method.name == name && method.descriptor == descriptor
+        })
+        .expect("NoSuchMethodError")
+}
+
+pub fn resolve_field(class: ClassId, name: &str) -> FieldId {
+    // TODO: Recursive field lookup
+    // 5.4.3.2. Field Resolution
+    let method_area = method_area();
+    let class = &method_area.classes[class];
+    class
+        .fields
+        .iter()
+        .copied()
+        .find(|&id| {
+            let field = &method_area.fields[id];
+            field.name == name
+        })
+        .expect("NoSuchFieldError")
+}
+
 pub fn load_class_bootstrap(name: &str) -> ClassId {
     if method_area().class_map.contains_key(name) {
         panic!("LinkageError");
@@ -62,7 +94,7 @@ pub fn load_class_bootstrap(name: &str) -> ClassId {
                 None
             }
         })
-        .expect("ClassNotFoundException");
+        .unwrap_or_else(|| panic!("ClassNotFoundException: {}", name));
     let class_file = ClassFile::from_bytes((&data, 0))
         .expect("ClassFormatError")
         .1;

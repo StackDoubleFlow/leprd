@@ -1,6 +1,9 @@
 use crate::class_file::attributes::CodeAttribute;
 use crate::class_file::ConstantPool;
-use crate::class_loader::{ClassId, ClassLoader, FieldId, MethodId, method_area, resolve_class};
+use crate::class_loader::{
+    method_area, resolve_class, resolve_field, resolve_method, ClassId, ClassLoader, FieldId,
+    MethodId,
+};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -70,18 +73,31 @@ pub struct Class {
 }
 
 impl Class {
+    pub fn class_reference(&mut self, cp_idx: u16) -> ClassId {
+        match self.references[&cp_idx] {
+            Reference::Unresolved => {
+                let name = self.constant_pool.class_name(cp_idx);
+                let class = resolve_class(&name);
+                *self.references.get_mut(&cp_idx).unwrap() = Reference::Class(class);
+                class
+            }
+            Reference::Class(class) => class,
+            _ => unreachable!(),
+        }
+    }
+
     pub fn field_reference(&mut self, cp_idx: u16) -> FieldId {
         match self.references[&cp_idx] {
             Reference::Unresolved => {
                 let (class_idx, nat) = self.constant_pool.any_ref(cp_idx);
-                let class_id = resolve_class(&self.constant_pool.class_name(class_idx));
+                let class_id = self.class_reference(class_idx);
                 let (name, ..) = self.constant_pool.nat(nat);
-                let field = find_field(class_id, &name).unwrap();
+                let field = resolve_field(class_id, &name);
                 *self.references.get_mut(&cp_idx).unwrap() = Reference::Field(field);
                 field
             }
             Reference::Field(field) => field,
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 
@@ -89,32 +105,14 @@ impl Class {
         match self.references[&cp_idx] {
             Reference::Unresolved => {
                 let (class_idx, nat) = self.constant_pool.any_ref(cp_idx);
-                let class_id = resolve_class(&self.constant_pool.class_name(class_idx));
+                let class_id = self.class_reference(class_idx);
                 let (name, descriptor) = self.constant_pool.nat(nat);
-                let method = find_method(class_id, &name, &descriptor).unwrap();
+                let method = resolve_method(class_id, &name, &descriptor);
                 *self.references.get_mut(&cp_idx).unwrap() = Reference::Method(method);
                 method
             }
             Reference::Method(method) => method,
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
-}
-
-pub fn find_method(class: ClassId, name: &str, descriptor: &str) -> Option<MethodId> {
-    let method_area = method_area();
-    let class = &method_area.classes[class];
-    class.methods.iter().copied().find(|&id| {
-        let method = &method_area.methods[id];
-        method.name == name && method.descriptor == descriptor
-    })
-}
-
-pub fn find_field(class: ClassId, name: &str) -> Option<FieldId> {
-    let method_area = method_area();
-    let class = &method_area.classes[class];
-    class.fields.iter().copied().find(|&id| {
-        let field = &method_area.fields[id];
-        field.name == name
-    })
 }
