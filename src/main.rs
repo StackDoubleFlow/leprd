@@ -19,7 +19,6 @@ static CONFIG: Config = Config {
 };
 
 fn main() {
-    // class_loader::load_class_bootstrap("module-info");
     let class = resolve_class(CONFIG.main_class);
     let method = resolve_method(class, "main", "([Ljava/lang/String;)V");
     let mut thread = Thread::new(method);

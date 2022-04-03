@@ -156,7 +156,7 @@ pub fn load_class_bootstrap(name: &str) -> ClassId {
     for (i, entry) in class_file.constant_pool.table.iter().enumerate() {
         match entry {
             CPInfo::Fieldref { .. } | CPInfo::Methodref { .. } | CPInfo::Class { .. } => {
-                references.insert(i as u16, Reference::Unresolved);
+                references.insert(i as u16 + 1, Reference::Unresolved);
             }
             _ => {}
         }
