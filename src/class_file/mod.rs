@@ -1,5 +1,6 @@
 pub mod attributes;
 pub mod constant_pool;
+pub mod descriptors;
 pub mod fields;
 pub mod methods;
 

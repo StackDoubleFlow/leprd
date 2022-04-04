@@ -1,6 +1,8 @@
 use crate::class::{Class, Field, Method, Reference};
 use crate::class_file::constant_pool::CPInfo;
-use crate::class_file::ClassFile;
+use crate::class_file::descriptors::FieldDescriptor;
+use crate::class_file::{fields, ClassFile};
+use crate::value::Value;
 use crate::CONFIG;
 use deku::DekuContainerRead;
 use id_arena::{Arena, Id};
@@ -35,48 +37,48 @@ pub struct MethodArea {
     pub fields: Arena<Field>,
 }
 
-pub fn resolve_class(name: &str) -> ClassId {
-    let id = method_area().class_map.get(name).cloned();
-    match id {
-        Some(id) => id,
-        None => load_class_bootstrap(name),
+impl MethodArea {
+    pub fn resolve_class(&mut self, name: &str) -> ClassId {
+        let id = self.class_map.get(name).cloned();
+        match id {
+            Some(id) => id,
+            None => load_class_bootstrap(self, name),
+        }
+    }
+
+    pub fn resolve_method(&self, class: ClassId, name: &str, descriptor: &str) -> MethodId {
+        // TODO: Recursive method lookup
+        // 5.4.3.3. Method Resolution
+        let class = &self.classes[class];
+        class
+            .methods
+            .iter()
+            .copied()
+            .find(|&id| {
+                let method = &self.methods[id];
+                method.name == name && method.descriptor == descriptor
+            })
+            .expect("NoSuchMethodError")
+    }
+
+    pub fn resolve_field(&self, class: ClassId, name: &str) -> FieldId {
+        // TODO: Recursive field lookup
+        // 5.4.3.2. Field Resolution
+        let class = &self.classes[class];
+        class
+            .fields
+            .iter()
+            .copied()
+            .find(|&id| {
+                let field = &self.fields[id];
+                field.name == name
+            })
+            .expect("NoSuchFieldError")
     }
 }
 
-pub fn resolve_method(class: ClassId, name: &str, descriptor: &str) -> MethodId {
-    // TODO: Recursive method lookup
-    // 5.4.3.3. Method Resolution
-    let method_area = method_area();
-    let class = &method_area.classes[class];
-    class
-        .methods
-        .iter()
-        .copied()
-        .find(|&id| {
-            let method = &method_area.methods[id];
-            method.name == name && method.descriptor == descriptor
-        })
-        .expect("NoSuchMethodError")
-}
-
-pub fn resolve_field(class: ClassId, name: &str) -> FieldId {
-    // TODO: Recursive field lookup
-    // 5.4.3.2. Field Resolution
-    let method_area = method_area();
-    let class = &method_area.classes[class];
-    class
-        .fields
-        .iter()
-        .copied()
-        .find(|&id| {
-            let field = &method_area.fields[id];
-            field.name == name
-        })
-        .expect("NoSuchFieldError")
-}
-
-pub fn load_class_bootstrap(name: &str) -> ClassId {
-    if method_area().class_map.contains_key(name) {
+pub fn load_class_bootstrap(ma: &mut MethodArea, name: &str) -> ClassId {
+    if ma.class_map.contains_key(name) {
         panic!("LinkageError");
     }
 
@@ -104,7 +106,7 @@ pub fn load_class_bootstrap(name: &str) -> ClassId {
 
     let super_class = if class_file.super_class > 0 {
         let super_name = class_file.constant_pool.class_name(class_file.super_class);
-        Some(resolve_class(&super_name))
+        Some(ma.resolve_class(&super_name))
     } else {
         // Super class should only be None for Object
         None
@@ -114,11 +116,11 @@ pub fn load_class_bootstrap(name: &str) -> ClassId {
     let mut interfaces = Vec::new();
     for interface in class_file.interfaces {
         let interface_name = class_file.constant_pool.class_name(interface);
-        interfaces.push(resolve_class(&interface_name));
+        interfaces.push(ma.resolve_class(&interface_name));
     }
 
     // No new classes can be loaded after this point
-    let class_id = method_area().classes.next_id();
+    let class_id = ma.classes.next_id();
 
     let mut methods = Vec::new();
     for method in class_file.methods {
@@ -131,7 +133,7 @@ pub fn load_class_bootstrap(name: &str) -> ClassId {
                 code = Some(Arc::new(attr.code()));
             }
         }
-        let id = method_area().methods.alloc(Method {
+        let id = ma.methods.alloc(Method {
             defining_class: class_id,
             name,
             descriptor,
@@ -144,10 +146,20 @@ pub fn load_class_bootstrap(name: &str) -> ClassId {
     let mut fields = Vec::new();
     for field in class_file.fields {
         let name = class_file.constant_pool.utf8(field.name_index);
-        let id = method_area().fields.alloc(Field {
+
+        let static_value = if field.access_flags & fields::acc::STATIC != 0 {
+            let descriptor = class_file.constant_pool.utf8(field.descriptor_index);
+            let descriptor = FieldDescriptor::read(&descriptor);
+            Some(Value::default_for_ty(descriptor.0))
+        } else {
+            None
+        };
+
+        let id = ma.fields.alloc(Field {
             name,
             defining_class: class_id,
             access_flags: field.access_flags,
+            static_value,
         });
         fields.push(id);
     }
@@ -163,6 +175,7 @@ pub fn load_class_bootstrap(name: &str) -> ClassId {
     }
 
     let class = Class {
+        initialized: false,
         defining_loader: ClassLoader::Bootstrap,
         references,
         name: name.clone(),
@@ -174,12 +187,11 @@ pub fn load_class_bootstrap(name: &str) -> ClassId {
         constant_pool: class_file.constant_pool,
     };
 
-    let mut method_area = method_area();
-    let id = method_area.classes.alloc(class);
-    method_area.class_map.insert(name, id);
+    let id = ma.classes.alloc(class);
+    ma.class_map.insert(name, id);
 
     // See if this class is an interface of itself
-    let class = &method_area.classes[id];
+    let class = &ma.classes[id];
     for &interface in &class.interfaces {
         if interface == id {
             panic!("ClassCircularityError");

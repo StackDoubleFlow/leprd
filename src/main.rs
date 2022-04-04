@@ -1,12 +1,14 @@
 #![feature(once_cell)]
 
-use crate::class_loader::{resolve_class, resolve_method};
+use crate::class_loader::method_area;
 use crate::jvm::Thread;
 
 mod class;
 mod class_file;
 mod class_loader;
+mod heap;
 mod jvm;
+mod value;
 
 struct Config {
     classpath: &'static [&'static str],
@@ -19,8 +21,10 @@ static CONFIG: Config = Config {
 };
 
 fn main() {
-    let class = resolve_class(CONFIG.main_class);
-    let method = resolve_method(class, "main", "([Ljava/lang/String;)V");
+    let mut ma = method_area();
+    let class = ma.resolve_class(CONFIG.main_class);
+    let method = ma.resolve_method(class, "main", "([Ljava/lang/String;)V");
+    drop(ma);
     let mut thread = Thread::new(method);
     println!("running thread");
     thread.run();
