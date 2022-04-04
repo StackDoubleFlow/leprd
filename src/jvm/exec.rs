@@ -81,6 +81,7 @@ impl Thread {
                     let idx = self.read_u16();
                     let class_id = self.class_id();
                     let obj_class = Class::class_reference(class_id, idx);
+                    self.ensure_initialized(obj_class);
                     let obj_id = Object::new(obj_class);
                     self.operand_stack.push(Value::Object(Some(obj_id)))
                 }
