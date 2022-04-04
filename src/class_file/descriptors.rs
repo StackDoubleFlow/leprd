@@ -1,3 +1,21 @@
+#[test]
+fn method_desc_test() {
+    let desc = MethodDescriptor::read("([CII)V");
+    assert_eq!(
+        desc,
+        MethodDescriptor(
+            vec![
+                ParameterDescriptor(FieldType::ArrayType(ArrayType(Box::new(ComponentType(
+                    FieldType::BaseType(BaseType::C)
+                ))))),
+                ParameterDescriptor(FieldType::BaseType(BaseType::I)),
+                ParameterDescriptor(FieldType::BaseType(BaseType::I))
+            ],
+            ReturnDescriptor::Void
+        )
+    )
+}
+
 #[derive(Debug, PartialEq)]
 pub struct MethodDescriptor(pub Vec<ParameterDescriptor>, pub ReturnDescriptor);
 

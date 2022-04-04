@@ -2,7 +2,7 @@ mod exec;
 
 use crate::class_file::attributes::CodeAttribute;
 use crate::class_loader::{method_area, ClassId, MethodId};
-use crate::heap::{ObjectId, Array, heap, Object};
+use crate::heap::{heap, Array, Object, ObjectId};
 use crate::value::Value;
 use std::mem;
 use std::sync::Arc;
@@ -59,7 +59,10 @@ impl Thread {
     fn call_method(&mut self, method_id: MethodId, is_static: bool) {
         let ma = method_area();
         let method = &ma.methods[method_id];
-        println!("Calling method: {}.{}", ma.classes[method.defining_class].name, method.name);
+        println!(
+            "Calling method: {}.{}",
+            ma.classes[method.defining_class].name, method.name
+        );
         if method.code.is_none() {
             println!("TODO: Native method call");
             return;
@@ -81,7 +84,8 @@ impl Thread {
                 _ => cur_local += 1,
             }
         }
-        self.operand_stack.truncate(self.operand_stack.len() - num_params);
+        self.operand_stack
+            .truncate(self.operand_stack.len() - num_params);
 
         let stack_frame = StackFrame {
             method: self.method,
@@ -101,6 +105,7 @@ impl Thread {
         self.method = stack_frame.method;
         self.code = method_area().methods[self.method].code.clone().unwrap();
         self.pc = stack_frame.return_pc;
+        self.locals = stack_frame.locals;
     }
 
     fn ensure_initialized(&mut self, class_id: ClassId) {
@@ -125,7 +130,7 @@ impl Thread {
     fn create_string(&mut self, str: &str) -> ObjectId {
         let arr: Box<[Value]> = str.chars().map(Value::Char).collect();
         let arr_id = heap().arrays.alloc(Array { contents: arr });
-        
+
         let str_class = method_area().resolve_class("java/lang/String");
         let str_obj = Object::new(str_class);
         self.operand_stack.push(Value::Object(Some(str_obj)));

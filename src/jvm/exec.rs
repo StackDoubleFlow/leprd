@@ -18,7 +18,9 @@ impl Thread {
             CPInfo::Double { val } => Value::Double(val),
             CPInfo::String { string_index } => {
                 drop(ma);
-                let str = method_area().classes[class_id].constant_pool.utf8(string_index);
+                let str = method_area().classes[class_id]
+                    .constant_pool
+                    .utf8(string_index);
                 Value::Object(Some(self.create_string(&str)))
             }
             _ => unimplemented!(),
