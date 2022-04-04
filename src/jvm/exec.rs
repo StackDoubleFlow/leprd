@@ -9,16 +9,18 @@ use crate::value::Value;
 impl Thread {
     fn ldc(&mut self, cp_idx: u16) {
         let class_id = self.class_id();
-        let cp_info = &method_area().classes[class_id].constant_pool.table[cp_idx as usize - 1];
+        let ma = method_area();
+        let cp_info = &ma.classes[class_id].constant_pool.table[cp_idx as usize - 1];
         let val = match *cp_info {
             CPInfo::Integer { val } => Value::Int(val),
             CPInfo::Float { val } => Value::Float(val),
             CPInfo::Long { val } => Value::Long(val),
             CPInfo::Double { val } => Value::Double(val),
-            // CPInfo::String { string_index } => {
-            //     let str = method_area().classes[class_id].constant_pool.utf8(string_index);
-            //     Value::Object()
-            // }
+            CPInfo::String { string_index } => {
+                drop(ma);
+                let str = method_area().classes[class_id].constant_pool.utf8(string_index);
+                Value::Object(Some(self.create_string(&str)))
+            }
             _ => unimplemented!(),
         };
         self.operand_stack.push(val);
@@ -69,12 +71,19 @@ impl Thread {
                     self.ensure_initialized(defining_class);
                     method_area().fields[field].static_value = self.operand_stack.pop();
                 }
+                // invokespecial
+                183 => {
+                    let idx = self.read_u16();
+                    let class_id = self.class_id();
+                    let method = Class::method_reference(class_id, idx);
+                    self.call_method(method, false);
+                }
                 // invokestatic
                 184 => {
                     let idx = self.read_u16();
                     let class_id = self.class_id();
                     let method = Class::method_reference(class_id, idx);
-                    self.call_method(method);
+                    self.call_method(method, true);
                 }
                 // new
                 187 => {
