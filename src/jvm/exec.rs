@@ -60,6 +60,11 @@ impl Thread {
                     let cp_idx = self.read_u16();
                     self.ldc(cp_idx)
                 }
+                // float_<n>
+                34 => self.operand_stack.push(self.locals[0].unwrap()),
+                35 => self.operand_stack.push(self.locals[1].unwrap()),
+                36 => self.operand_stack.push(self.locals[2].unwrap()),
+                37 => self.operand_stack.push(self.locals[3].unwrap()),
                 // iload_<n>
                 26 => self.operand_stack.push(self.locals[0].unwrap()),
                 27 => self.operand_stack.push(self.locals[1].unwrap()),
@@ -70,6 +75,22 @@ impl Thread {
                 43 => self.operand_stack.push(self.locals[1].unwrap()),
                 44 => self.operand_stack.push(self.locals[2].unwrap()),
                 45 => self.operand_stack.push(self.locals[3].unwrap()),
+                // if<cond>
+                153..=158 => {
+                    let val = match self.pop() {
+                        Value::Int(val) => val,
+                        _ => unreachable!(),
+                    };
+                    self.br_if(match opcode {
+                        153 => val == 0,
+                        154 => val != 0,
+                        155 => val < 0,
+                        156 => val <= 0,
+                        157 => val > 0,
+                        158 => val >= 0,
+                        _ => unreachable!(),
+                    });
+                }
                 // return
                 177 => return,
                 // getstatic
@@ -90,6 +111,13 @@ impl Thread {
                     let defining_class = method_area().fields[field].defining_class;
                     self.ensure_initialized(defining_class);
                     method_area().fields[field].static_value = self.operand_stack.pop();
+                }
+                // invokevirtual
+                182 => {
+                    let idx = self.read_u16();
+                    let class_id = self.class_id();
+                    let method = Class::method_reference(class_id, idx);
+                    self.call_method(method, false);
                 }
                 // invokespecial
                 183 => {

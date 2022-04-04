@@ -1,7 +1,7 @@
 use crate::class_file::descriptors::{BaseType, FieldType};
 use crate::heap::{ArrayId, ObjectId};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Value {
     Byte(i8),
     Char(char),

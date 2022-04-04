@@ -1,4 +1,5 @@
 mod exec;
+mod natives;
 
 use crate::class_file::attributes::CodeAttribute;
 use crate::class_loader::{method_area, ClassId, MethodId};
@@ -128,15 +129,38 @@ impl Thread {
     }
 
     fn create_string(&mut self, str: &str) -> ObjectId {
-        let arr: Box<[Value]> = str.chars().map(Value::Char).collect();
+        let arr: Box<[Value]> = str
+            .encode_utf16()
+            .flat_map(|x| x.to_be_bytes())
+            .map(|b| Value::Byte(b as i8))
+            .collect();
         let arr_id = heap().arrays.alloc(Array { contents: arr });
 
-        let str_class = method_area().resolve_class("java/lang/String");
-        let str_obj = Object::new(str_class);
-        self.operand_stack.push(Value::Object(Some(str_obj)));
-        self.operand_stack.push(Value::Array(Some(arr_id)));
-        let str_constructor = method_area().resolve_method(str_class, "<init>", "([C)V");
-        self.call_method(str_constructor, false);
+        let mut ma = method_area();
+        let str_class = ma.resolve_class("java/lang/String");
+        let value_field = ma.resolve_field(str_class, "value");
+        let coder_field = ma.resolve_field(str_class, "coder");
+        drop(ma);
+
+        let str_obj_id = Object::new(str_class);
+        let str_obj = &mut heap().objects[str_obj_id];
         str_obj
+            .fields
+            .insert(value_field, Value::Array(Some(arr_id)));
+        str_obj.fields.insert(coder_field, Value::Byte(1));
+
+        self.operand_stack.push(Value::Object(Some(str_obj_id)));
+        str_obj_id
+    }
+
+    fn br_if(&mut self, cond: bool) {
+        let target = self.pc as isize + self.read_u16() as i16 as isize;
+        if cond {
+            self.pc = target as usize;
+        }
+    }
+
+    fn pop(&mut self) -> Value {
+        self.operand_stack.pop().unwrap()
     }
 }
