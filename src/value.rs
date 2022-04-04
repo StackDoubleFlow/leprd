@@ -47,16 +47,15 @@ macro_rules! impl_val_op_binary {
             }
         }
     };
-    // ($trait:ty => fn $fn_name:ident($lhs:ident, $rhs:ident) = { $ex:expr }: $($variant:ident),+) => {
+    // ($trait:ty => fn $fn_name:ident($lhs:ident, $rhs:ident) = $ex:block: $($variant:ident),+) => {
     //     impl $trait for Value {
     //         type Output = Value;
     //
     //         fn $fn_name(self, rhs: Value) -> Value {
     //             match (self, rhs) {
     //                 $(
-    //                     (Value::$variant(lhs), Value::$variant(rhs)) => {
-    //                         let ($lhs, $rhs) = (lhs, rhs);
-    //                         Value::$variant($expr)
+    //                     (Value::$variant($lhs), Value::$variant($rhs)) => {
+    //                         Value::$variant($ex)
     //                     },
     //                 )+
     //                 _ => unreachable!(),
@@ -66,16 +65,56 @@ macro_rules! impl_val_op_binary {
     // };
 }
 
+// :(
+impl std::ops::Mul for Value {
+    type Output = Value;
+
+    fn mul(self, rhs: Value) -> Value {
+        match (self, rhs) {
+            (Value::Int(lhs), Value::Int(rhs)) => Value::Int(lhs.overflowing_mul(rhs).0),
+            (Value::Long(lhs), Value::Long(rhs)) => Value::Long(lhs.overflowing_mul(rhs).0),
+            (Value::Float(lhs), Value::Float(rhs)) => Value::Float(lhs * rhs),
+            (Value::Double(lhs), Value::Double(rhs)) => Value::Double(lhs * rhs),
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl std::ops::Shr for Value {
+    type Output = Value;
+
+    fn shr(self, rhs: Value) -> Value {
+        match (self, rhs) {
+            (Value::Int(lhs), Value::Int(rhs)) => Value::Int(lhs >> rhs),
+            (Value::Long(lhs), Value::Int(rhs)) => Value::Long(lhs >> rhs),
+            _ => unreachable!(),
+        }
+    }
+}
+
+impl std::ops::Shl for Value {
+    type Output = Value;
+
+    fn shl(self, rhs: Value) -> Value {
+        match (self, rhs) {
+            (Value::Int(lhs), Value::Int(rhs)) => Value::Int(lhs << rhs),
+            (Value::Long(lhs), Value::Int(rhs)) => Value::Long(lhs << rhs),
+            _ => unreachable!(),
+        }
+    }
+}
+
 impl_val_op_binary!(std::ops::Add => fn add: Int, Long, Float, Double);
 impl_val_op_binary!(std::ops::Sub => fn sub: Int, Long, Float, Double);
-impl_val_op_binary!(std::ops::Mul => fn mul: Int, Long, Float, Double);
+// impl_val_op_binary!(std::ops::Mul => fn mul(lhs, rhs) = { lhs.overflowing_mul(rhs).0 }: Int, Long);
+// impl_val_op_binary!(std::ops::Mul => fn mul: Float, Double);
 impl_val_op_binary!(std::ops::Div => fn div: Int, Long, Float, Double);
 impl_val_op_binary!(std::ops::Rem => fn rem: Int, Long, Float, Double);
 impl_val_op_binary!(std::ops::BitAnd => fn bitand: Int, Long);
 impl_val_op_binary!(std::ops::BitOr => fn bitor: Int, Long);
 impl_val_op_binary!(std::ops::BitXor => fn bitxor: Int, Long);
-impl_val_op_binary!(std::ops::Shl => fn shl: Int, Long);
-impl_val_op_binary!(std::ops::Shr => fn shr: Int, Long);
+// impl_val_op_binary!(std::ops::Shl => fn shl: Int, Long);
+// impl_val_op_binary!(std::ops::Shr => fn shr: Int, Long);
 impl_val_op_unary!(std::ops::Neg => fn neg: Int, Long, Float, Double);
 
 impl Value {

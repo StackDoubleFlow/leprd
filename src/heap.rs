@@ -58,6 +58,47 @@ impl Object {
         let ty = &method_area().fields[field].descriptor.0;
         self.fields.insert(field, val.store_ty(ty));
     }
+
+    pub fn read_string(str_obj: ObjectId) -> String {
+        let str_class = heap().objects[str_obj].class;
+
+        let ma = method_area();
+        let value_field = ma.resolve_field(str_class, "value");
+        let coder_field = ma.resolve_field(str_class, "coder");
+        drop(ma);
+
+        let mut heap = heap();
+        let str = &mut heap.objects[str_obj];
+        let value = match str.fields[&value_field] {
+            Value::Array(Some(arr)) => arr,
+            _ => unreachable!(),
+        };
+        let coder = match str.fields[&coder_field] {
+            Value::Byte(val) => val,
+            _ => unreachable!(),
+        };
+        if coder == 0 {
+            let utf8 = heap.arrays[value]
+                .contents
+                .iter()
+                .map(|x| match x {
+                    Value::Byte(x) => *x as u8,
+                    _ => unreachable!(),
+                })
+                .collect();
+            String::from_utf8(utf8).unwrap()
+        } else {
+            let utf16 = heap.arrays[value]
+                .contents
+                .chunks_exact(2)
+                .map(|c| match c {
+                    &[Value::Byte(a), Value::Byte(b)] => u16::from_ne_bytes([a as u8, b as u8]),
+                    _ => unreachable!(),
+                })
+                .collect::<Vec<_>>();
+            String::from_utf16(&utf16).unwrap()
+        }
+    }
 }
 
 #[derive(Debug)]

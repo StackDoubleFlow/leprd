@@ -5,12 +5,19 @@ use crate::class_file::descriptors::{BaseType, FieldType, ObjectType};
 use crate::class_loader::method_area;
 use crate::heap::{heap, Array, Object};
 use crate::value::Value;
+use std::cmp::Ordering;
 
 macro_rules! binary_op {
     ($self:ident, $op:tt) => {{
         let rhs = $self.pop();
         let lhs = $self.pop();
+        dbg!(lhs, rhs);
         $self.operand_stack.push(lhs $op rhs);
+    }};
+    ($self:ident, ($lhs:ident, $rhs:ident) => $expr:expr) => {{
+        let $rhs = $self.pop();
+        let $lhs = $self.pop();
+        $self.operand_stack.push($expr);
     }};
 }
 
@@ -256,16 +263,32 @@ impl Thread {
                     let val = *self.operand_stack.last().unwrap();
                     self.operand_stack.push(val);
                 }
+                // iadd
+                96 => binary_op!(self, +),
+                // ladd
+                97 => binary_op!(self, +),
                 // isub
                 100 => binary_op!(self, -),
+                // imul
+                104 => binary_op!(self, *),
+                // lmul
+                105 => binary_op!(self, *),
+                // irem
+                112 => binary_op!(self, %),
                 // ishl
                 120 => binary_op!(self, <<),
+                // lshl
+                121 => binary_op!(self, <<),
                 // ishr
                 122 => binary_op!(self, >>),
+                // lshr
+                123 => binary_op!(self, >>),
                 // iand
                 126 => binary_op!(self, &),
                 // ior
                 128 => binary_op!(self, |),
+                // land
+                127 => binary_op!(self, &),
                 // iinc
                 132 => {
                     let c = self.read_ins() as i8 as i32;
@@ -275,8 +298,29 @@ impl Thread {
                         _ => unreachable!(),
                     }
                 }
+                // i2l
+                133 => cast!(self, Int, Long, val -> val as i64),
+                // l2i
+                136 => cast!(self, Long, Int, val -> val as i32),
                 // i2c
                 146 => cast!(self, Int, Int, val -> val % 0xF),
+                // lcmp
+                148 => {
+                    let value2 = match self.pop() {
+                        Value::Long(val) => val,
+                        _ => unreachable!(),
+                    };
+                    let value1 = match self.pop() {
+                        Value::Long(val) => val,
+                        _ => unreachable!(),
+                    };
+                    let res = match value1.cmp(&value2) {
+                        Ordering::Greater => 1,
+                        Ordering::Equal => 0,
+                        Ordering::Less => -1,
+                    };
+                    self.operand_stack.push(Value::Int(res));
+                }
                 // if<cond>
                 153..=158 => {
                     let val = match self.pop() {
@@ -536,15 +580,16 @@ impl Thread {
                 }
                 // ifnull, ifnonnull
                 198..=199 => {
-                    let val = match self.pop() {
-                        Value::Object(val) => val,
+                    let is_some = match self.pop() {
+                        Value::Object(val) => val.is_some(),
+                        Value::Array(val) => val.is_some(),
                         _ => unreachable!(),
                     };
                     self.br_if(
                         cur_pc,
                         match opcode {
-                            198 => val.is_none(),
-                            199 => val.is_some(),
+                            198 => !is_some,
+                            199 => is_some,
                             _ => unreachable!(),
                         },
                     );

@@ -1,4 +1,5 @@
 #![feature(once_cell)]
+#![feature(slice_group_by)]
 
 use crate::class_loader::method_area;
 use crate::jvm::Thread;
