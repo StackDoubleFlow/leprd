@@ -34,6 +34,7 @@ impl Thread {
     }
 
     pub fn run(&mut self) {
+        let cur_pc = self.pc;
         loop {
             let opcode = self.read_ins();
             dbg!(opcode);
@@ -80,20 +81,61 @@ impl Thread {
                 43 => self.operand_stack.push(self.locals[1].unwrap()),
                 44 => self.operand_stack.push(self.locals[2].unwrap()),
                 45 => self.operand_stack.push(self.locals[3].unwrap()),
+                // dup
+                89 => {
+                    let val = *self.operand_stack.last().unwrap();
+                    self.operand_stack.push(val);
+                }
                 // if<cond>
                 153..=158 => {
                     let val = match self.pop() {
                         Value::Int(val) => val,
                         _ => unreachable!(),
                     };
-                    self.br_if(match opcode {
+                    self.br_if(cur_pc, match opcode {
                         153 => val == 0,
                         154 => val != 0,
                         155 => val < 0,
-                        156 => val <= 0,
+                        156 => val >= 0,
                         157 => val > 0,
-                        158 => val >= 0,
+                        158 => val <= 0,
                         _ => unreachable!(),
+                    });
+                }
+                // if_icmp<cond>
+                159..=164 => {
+                    let rhs = match self.pop() {
+                        Value::Int(val) => val,
+                        _ => unreachable!(),
+                    };
+                    let lhs = match self.pop() {
+                        Value::Int(val) => val,
+                        _ => unreachable!(),
+                    };
+                    self.br_if(cur_pc, match opcode {
+                        159 => lhs == rhs,
+                        160 => lhs != rhs,
+                        161 => lhs < rhs,
+                        162 => lhs >= rhs,
+                        163 => lhs > rhs,
+                        164 => lhs <= rhs,
+                        _ => unreachable!(),
+                    });
+                }
+                // if_acmp<cond>
+                165..=166 => {
+                    let rhs = match self.pop() {
+                        Value::Object(val) => val,
+                        _ => unreachable!(),
+                    };
+                    let lhs = match self.pop() {
+                        Value::Object(val) => val,
+                        _ => unreachable!(),
+                    };
+                    self.br_if(cur_pc, match opcode {
+                        165 => lhs == rhs,
+                        166 => lhs != rhs,
+                        _ => unreachable!()
                     });
                 }
                 // return

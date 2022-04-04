@@ -156,8 +156,8 @@ impl Thread {
         str_obj_id
     }
 
-    fn br_if(&mut self, cond: bool) {
-        let target = self.pc as isize + self.read_u16() as i16 as isize;
+    fn br_if(&mut self, cur_pc: usize, cond: bool) {
+        let target = cur_pc as isize + self.read_u16() as i16 as isize;
         if cond {
             self.pc = target as usize;
         }
