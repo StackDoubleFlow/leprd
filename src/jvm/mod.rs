@@ -110,6 +110,7 @@ impl Thread {
         self.method = stack_frame.method;
         self.code = method_area().methods[self.method].code.clone().unwrap();
         self.pc = stack_frame.return_pc;
+        self.operand_stack = stack_frame.operand_stack;
         self.locals = stack_frame.locals;
         if let Some(res) = res {
             self.operand_stack.push(res);

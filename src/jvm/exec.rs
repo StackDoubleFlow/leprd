@@ -37,7 +37,10 @@ impl Thread {
         loop {
             let cur_pc = self.pc;
             let opcode = self.read_ins();
-            println!("pc: {}, opcode: {}", cur_pc, opcode);
+            let c = self.class_id();
+            let class_name = method_area().classes[c].name.clone();
+            let method_name = method_area().methods[self.method].name.clone();
+            println!("m: {}.{}, pc: {}, opcode: {}", class_name, method_name, cur_pc, opcode);
             match opcode {
                 // nop
                 0 => {}
@@ -103,7 +106,7 @@ impl Thread {
                 153..=158 => {
                     let val = match self.pop() {
                         Value::Int(val) => val,
-                        _ => unreachable!(),
+                        a => unreachable!(),
                     };
                     self.br_if(
                         cur_pc,
@@ -160,6 +163,8 @@ impl Thread {
                         },
                     );
                 }
+                // goto
+                167 => self.br_if(cur_pc, true),
                 // ireturn
                 172 => return self.operand_stack.pop(),
                 // lreturn
@@ -202,6 +207,18 @@ impl Thread {
                         _ => unreachable!(),
                     };
                     self.operand_stack.push(heap().objects[obj].fields[&field]);
+                }
+                // putfield
+                181 => {
+                    let idx = self.read_u16();
+                    let class_id = self.class_id();
+                    let field = Class::field_reference(class_id, idx);
+                    let obj = match self.pop() {
+                        Value::Object(Some(obj)) => obj,
+                        Value::Object(None) => panic!("NullPointerException"),
+                        _ => unreachable!(),
+                    };
+                    heap().objects[obj].fields.insert(field, self.pop());
                 }
                 // invokevirtual
                 182 => {
