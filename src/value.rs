@@ -83,7 +83,7 @@ impl Value {
         match (self, rhs) {
             (Value::Int(lhs), Value::Int(rhs)) => Value::Int((lhs as u32 >> rhs) as i32),
             (Value::Long(lhs), Value::Long(rhs)) => Value::Long((lhs as u32 >> rhs) as i64),
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 
@@ -108,7 +108,7 @@ impl Value {
             Value::Short(x) => Value::Int(x as i32),
             Value::Boolean(x) => Value::Int(x as i32),
             Value::Char(x) => Value::Int(x as i32),
-            x => x
+            x => x,
         }
     }
 
@@ -119,7 +119,7 @@ impl Value {
                 FieldType::BaseType(BaseType::B) => Value::Byte(int as i8),
                 FieldType::BaseType(BaseType::S) => Value::Short(int as i16),
                 FieldType::BaseType(BaseType::Z) => Value::Boolean((int & 0b1) == 1),
-                _ => unimplemented!()
+                _ => unimplemented!(),
             }
         } else {
             self

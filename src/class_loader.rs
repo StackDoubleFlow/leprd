@@ -169,7 +169,10 @@ pub fn load_class_bootstrap(ma: &mut MethodArea, name: &str) -> ClassId {
     let mut references = HashMap::new();
     for (i, entry) in class_file.constant_pool.table.iter().enumerate() {
         match entry {
-            CPInfo::Fieldref { .. } | CPInfo::Methodref { .. } | CPInfo::Class { .. } => {
+            CPInfo::Fieldref { .. }
+            | CPInfo::Methodref { .. }
+            | CPInfo::InterfaceMethodref { .. }
+            | CPInfo::Class { .. } => {
                 references.insert(i as u16 + 1, Reference::Unresolved);
             }
             _ => {}

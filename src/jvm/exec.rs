@@ -59,7 +59,10 @@ impl Thread {
             let c = self.class_id();
             let class_name = method_area().classes[c].name.clone();
             let method_name = method_area().methods[self.method].name.clone();
-            println!("m: {}.{}, pc: {}, opcode: {}", class_name, method_name, cur_pc, opcode);
+            println!(
+                "m: {}.{}, pc: {}, opcode: {}",
+                class_name, method_name, cur_pc, opcode
+            );
             match opcode {
                 // nop
                 0 => {}
@@ -151,8 +154,7 @@ impl Thread {
                 // istore, lstore, fstore, dstore, astore
                 54..=58 => {
                     let idx = self.read_ins() as usize;
-                    self
-                        .locals
+                    self.locals
                         .insert(idx, Some(self.operand_stack.pop().unwrap()))
                 }
                 // istore_<n>
@@ -241,7 +243,7 @@ impl Thread {
                     let idx = self.read_ins() as usize;
                     match &mut self.locals[idx] {
                         Some(Value::Int(val)) => *val += c,
-                        _ => unreachable!()
+                        _ => unreachable!(),
                     }
                 }
                 // i2c
@@ -328,8 +330,12 @@ impl Thread {
                     let field = Class::field_reference(class_id, idx);
                     let defining_class = method_area().fields[field].defining_class;
                     self.ensure_initialized(defining_class);
-                    self.operand_stack
-                        .push(method_area().fields[field].static_value.unwrap().extend_32());
+                    self.operand_stack.push(
+                        method_area().fields[field]
+                            .static_value
+                            .unwrap()
+                            .extend_32(),
+                    );
                 }
                 // putstatic
                 179 => {
@@ -350,7 +356,13 @@ impl Thread {
                         Value::Object(None) => panic!("NullPointerException"),
                         _ => unreachable!(),
                     };
-                    self.operand_stack.push(heap().objects[obj].fields[&field].extend_32());
+                    {
+                        let ma = method_area();
+                        dbg!(&ma.classes[ma.fields[field].defining_class].name);
+                    }
+                    dbg!(&method_area().classes[heap().objects[obj].class].name);
+                    self.operand_stack
+                        .push(heap().objects[obj].fields[&field].extend_32());
                 }
                 // putfield
                 181 => {

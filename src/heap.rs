@@ -1,4 +1,4 @@
-use crate::class_file::descriptors::{FieldType, BaseType};
+use crate::class_file::descriptors::{BaseType, FieldType};
 use crate::class_file::fields;
 use crate::class_loader::{method_area, ClassId, FieldId};
 use crate::value::Value;

@@ -157,7 +157,6 @@ impl Thread {
             .insert(value_field, Value::Array(Some(arr_id)));
         str_obj.fields.insert(coder_field, Value::Byte(1));
 
-        self.operand_stack.push(Value::Object(Some(str_obj_id)));
         str_obj_id
     }
 
