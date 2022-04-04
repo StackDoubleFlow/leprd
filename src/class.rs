@@ -1,5 +1,5 @@
 use crate::class_file::attributes::CodeAttribute;
-use crate::class_file::descriptors::MethodDescriptor;
+use crate::class_file::descriptors::{FieldDescriptor, MethodDescriptor};
 use crate::class_file::ConstantPool;
 use crate::class_loader::{method_area, ClassId, ClassLoader, FieldId, MethodId};
 use crate::value::Value;
@@ -12,6 +12,7 @@ pub struct Field {
     pub defining_class: ClassId,
     pub access_flags: u16,
     pub static_value: Option<Value>,
+    pub descriptor: FieldDescriptor,
 }
 
 #[derive(Debug)]

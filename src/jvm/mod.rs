@@ -71,7 +71,7 @@ impl Thread {
         self.method = method_id;
         self.code = method_area().methods[method_id].code.clone().unwrap();
         self.pc = 0;
-        
+
         self.run();
 
         let stack_frame = self.stack_frames.pop().unwrap();

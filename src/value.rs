@@ -60,7 +60,7 @@ impl_val_op_binary!(std::ops::BitXor => fn bitxor: Int, Long);
 impl_val_op_unary!(std::ops::Neg => fn neg: Int, Long, Float, Double);
 
 impl Value {
-    pub fn default_for_ty(ty: FieldType) -> Value {
+    pub fn default_for_ty(ty: &FieldType) -> Value {
         match ty {
             FieldType::BaseType(BaseType::B) => Value::Byte(Default::default()),
             FieldType::BaseType(BaseType::C) => Value::Char(Default::default()),

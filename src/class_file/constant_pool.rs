@@ -83,13 +83,13 @@ pub enum CPInfo {
         bytes: Vec<u8>,
     },
     #[deku(id = "3")]
-    Integer { bytes: u32 },
+    Integer { val: i32 },
     #[deku(id = "4")]
-    Float { bytes: u32 },
+    Float { val: f32 },
     #[deku(id = "5")]
-    Long { high_bytes: u32, low_bytes: u32 },
+    Long { val: i64 },
     #[deku(id = "6")]
-    Double { high_bytes: u32, low_bytes: u32 },
+    Double { val: f64 },
     #[deku(id = "7")]
     Class { name_index: u16 },
     #[deku(id = "8")]

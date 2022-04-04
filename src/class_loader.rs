@@ -147,11 +147,11 @@ pub fn load_class_bootstrap(ma: &mut MethodArea, name: &str) -> ClassId {
     let mut fields = Vec::new();
     for field in class_file.fields {
         let name = class_file.constant_pool.utf8(field.name_index);
+        let descriptor = class_file.constant_pool.utf8(field.descriptor_index);
+        let descriptor = FieldDescriptor::read(&descriptor);
 
         let static_value = if field.access_flags & fields::acc::STATIC != 0 {
-            let descriptor = class_file.constant_pool.utf8(field.descriptor_index);
-            let descriptor = FieldDescriptor::read(&descriptor);
-            Some(Value::default_for_ty(descriptor.0))
+            Some(Value::default_for_ty(&descriptor.0))
         } else {
             None
         };
@@ -161,6 +161,7 @@ pub fn load_class_bootstrap(ma: &mut MethodArea, name: &str) -> ClassId {
             defining_class: class_id,
             access_flags: field.access_flags,
             static_value,
+            descriptor,
         });
         fields.push(id);
     }
