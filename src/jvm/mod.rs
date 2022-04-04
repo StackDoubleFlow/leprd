@@ -71,9 +71,15 @@ impl Thread {
             // objectref
             num_params += 1;
         }
-        for (i, local) in locals.iter_mut().enumerate().take(num_params) {
+        let mut cur_local = 0;
+        for i in 0..num_params {
             let stack_idx = self.operand_stack.len() - 1 - num_params + i;
-            *local = Some(self.operand_stack[stack_idx]);
+            let val = self.operand_stack[stack_idx];
+            locals[cur_local] = Some(val);
+            match val {
+                Value::Long(_) | Value::Double(_) => cur_local += 2,
+                _ => cur_local += 1,
+            }
         }
         self.operand_stack.truncate(self.operand_stack.len() - num_params);
 
