@@ -35,6 +35,14 @@ impl Thread {
                 0 => {}
                 // aconst_null
                 1 => self.operand_stack.push(Value::Object(None)),
+                // iconst_<i>
+                2 => self.operand_stack.push(Value::Int(-1)),
+                3 => self.operand_stack.push(Value::Int(0)),
+                4 => self.operand_stack.push(Value::Int(1)),
+                5 => self.operand_stack.push(Value::Int(2)),
+                6 => self.operand_stack.push(Value::Int(3)),
+                7 => self.operand_stack.push(Value::Int(4)),
+                8 => self.operand_stack.push(Value::Int(5)),
                 // ldc
                 18 => {
                     let cp_idx = self.read_ins() as u16;
@@ -50,6 +58,16 @@ impl Thread {
                     let cp_idx = self.read_u16();
                     self.ldc(cp_idx)
                 }
+                // iload_<n>
+                26 => self.operand_stack.push(self.locals[0].unwrap()),
+                27 => self.operand_stack.push(self.locals[1].unwrap()),
+                28 => self.operand_stack.push(self.locals[2].unwrap()),
+                29 => self.operand_stack.push(self.locals[3].unwrap()),
+                // aload_<n>
+                42 => self.operand_stack.push(self.locals[0].unwrap()),
+                43 => self.operand_stack.push(self.locals[1].unwrap()),
+                44 => self.operand_stack.push(self.locals[2].unwrap()),
+                45 => self.operand_stack.push(self.locals[3].unwrap()),
                 // return
                 177 => return,
                 // getstatic
@@ -117,6 +135,16 @@ impl Thread {
                     let arr: Box<[Value]> = (0..count).map(|_| val).collect();
                     let id = heap().arrays.alloc(Array { contents: arr });
                     self.operand_stack.push(Value::Array(Some(id)));
+                }
+                // arraylength
+                190 => {
+                    let arr = match self.operand_stack.pop() {
+                        Some(Value::Array(Some(arr))) => arr,
+                        Some(Value::Array(None)) => panic!("NullPointerException"),
+                        _ => panic!(),
+                    };
+                    let len = heap().arrays[arr].contents.len() as i32;
+                    self.operand_stack.push(Value::Int(len));
                 }
                 _ => unimplemented!("opcode: {}", opcode),
             }

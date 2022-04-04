@@ -59,7 +59,7 @@ impl Thread {
     fn call_method(&mut self, method_id: MethodId, is_static: bool) {
         let ma = method_area();
         let method = &ma.methods[method_id];
-        println!("Calling method: {}", method.name);
+        println!("Calling method: {}.{}", ma.classes[method.defining_class].name, method.name);
         if method.code.is_none() {
             println!("TODO: Native method call");
             return;
@@ -73,7 +73,7 @@ impl Thread {
         }
         let mut cur_local = 0;
         for i in 0..num_params {
-            let stack_idx = self.operand_stack.len() - 1 - num_params + i;
+            let stack_idx = self.operand_stack.len() - num_params + i;
             let val = self.operand_stack[stack_idx];
             locals[cur_local] = Some(val);
             match val {
