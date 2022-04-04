@@ -158,4 +158,22 @@ impl Class {
         // TODO: Initialize fields such as classLoader
         obj
     }
+
+    pub fn instance_of(this: ClassId, of: ClassId) -> bool {
+        // TODO: instanceof array types
+        let ma = method_area();
+        let mut cur_class = this;
+        loop {
+            let class = &ma.classes[cur_class];
+            if cur_class == of || class.interfaces.contains(&of) {
+                break true;
+            }
+
+            if let Some(parent) = class.super_class {
+                cur_class = parent;
+            } else {
+                break false;
+            }
+        }
+    }
 }

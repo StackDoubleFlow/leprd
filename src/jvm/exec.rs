@@ -457,6 +457,48 @@ impl Thread {
                     let len = heap().arrays[arr].contents.len() as i32;
                     self.operand_stack.push(Value::Int(len));
                 }
+                // checkcast
+                192 => {
+                    let val = self.pop();
+                    let obj = match val {
+                        Value::Object(Some(obj)) => obj,
+                        Value::Object(None) => {
+                            self.operand_stack.push(val);
+                            continue;
+                        },
+                        a => unreachable!("{a:?}"),
+                    };
+                    let obj_class = heap().objects[obj].class;
+
+                    let cp_idx = self.read_u16();
+                    let class_id = self.class_id();
+                    let ref_class = Class::class_reference(class_id, cp_idx);
+
+                    let instance_of = Class::instance_of(obj_class, ref_class);
+                    if !instance_of {
+                        panic!("ClassCastException");
+                    }
+                    self.operand_stack.push(val)
+                }
+                // instanceof
+                193 => {
+                    let obj = match self.pop() {
+                        Value::Object(Some(obj)) => obj,
+                        Value::Object(None) => {
+                            self.operand_stack.push(Value::Int(0));
+                            continue;
+                        },
+                        a => unreachable!("{a:?}"),
+                    };
+                    let obj_class = heap().objects[obj].class;
+
+                    let cp_idx = self.read_u16();
+                    let class_id = self.class_id();
+                    let ref_class = Class::class_reference(class_id, cp_idx);
+
+                    let instance_of = Class::instance_of(obj_class, ref_class);
+                    self.operand_stack.push(Value::Int(instance_of as i32))
+                }
                 // ifnull, ifnonnull
                 198..=199 => {
                     let val = match self.pop() {
