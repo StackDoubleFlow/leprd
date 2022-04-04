@@ -23,6 +23,11 @@ impl Thread {
                     .utf8(string_index);
                 Value::Object(Some(self.create_string(&str)))
             }
+            CPInfo::Class { .. } => {
+                drop(ma);
+                let c = Class::class_reference(class_id, cp_idx);
+                Value::Object(Some(Class::obj(c)))
+            }
             _ => unimplemented!(),
         };
         self.operand_stack.push(val);
