@@ -1,3 +1,4 @@
+use crate::class_file::descriptors::{FieldType, BaseType};
 use crate::class_file::fields;
 use crate::class_loader::{method_area, ClassId, FieldId};
 use crate::value::Value;
@@ -51,6 +52,11 @@ impl Object {
 
         let object = Object { class, fields };
         heap().objects.alloc(object)
+    }
+
+    pub fn store_field(&mut self, field: FieldId, val: Value) {
+        let ty = &method_area().fields[field].descriptor.0;
+        self.fields.insert(field, val.store_ty(ty));
     }
 }
 

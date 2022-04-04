@@ -6,6 +6,14 @@ use crate::class_loader::method_area;
 use crate::heap::{heap, Array, Object};
 use crate::value::Value;
 
+macro_rules! binary_op {
+    ($self:ident, $op:tt) => {{
+        let rhs = $self.pop();
+        let lhs = $self.pop();
+        $self.operand_stack.push(lhs $op rhs);
+    }};
+}
+
 impl Thread {
     fn ldc(&mut self, cp_idx: u16) {
         let class_id = self.class_id();
@@ -102,6 +110,8 @@ impl Thread {
                     let val = *self.operand_stack.last().unwrap();
                     self.operand_stack.push(val);
                 }
+                // ishr
+                122 => binary_op!(self, >>),
                 // if<cond>
                 153..=158 => {
                     let val = match self.pop() {
@@ -185,7 +195,7 @@ impl Thread {
                     let defining_class = method_area().fields[field].defining_class;
                     self.ensure_initialized(defining_class);
                     self.operand_stack
-                        .push(method_area().fields[field].static_value.unwrap());
+                        .push(method_area().fields[field].static_value.unwrap().extend_32());
                 }
                 // putstatic
                 179 => {
@@ -194,7 +204,7 @@ impl Thread {
                     let field = Class::field_reference(class_id, idx);
                     let defining_class = method_area().fields[field].defining_class;
                     self.ensure_initialized(defining_class);
-                    method_area().fields[field].static_value = self.operand_stack.pop();
+                    method_area().fields[field].store_static(self.operand_stack.pop().unwrap());
                 }
                 // getfield
                 180 => {
@@ -206,7 +216,7 @@ impl Thread {
                         Value::Object(None) => panic!("NullPointerException"),
                         _ => unreachable!(),
                     };
-                    self.operand_stack.push(heap().objects[obj].fields[&field]);
+                    self.operand_stack.push(heap().objects[obj].fields[&field].extend_32());
                 }
                 // putfield
                 181 => {
@@ -218,7 +228,7 @@ impl Thread {
                         Value::Object(None) => panic!("NullPointerException"),
                         _ => unreachable!(),
                     };
-                    heap().objects[obj].fields.insert(field, self.pop());
+                    heap().objects[obj].store_field(field, self.pop());
                 }
                 // invokevirtual
                 182 => {

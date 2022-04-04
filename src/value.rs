@@ -47,6 +47,23 @@ macro_rules! impl_val_op_binary {
             }
         }
     };
+    ($trait:ty => fn $fn_name:ident($lhs:ident, $rhs:ident) = { $ex:expr }: $($variant:ident),+) => {
+        impl $trait for Value {
+            type Output = Value;
+
+            fn $fn_name(self, rhs: Value) -> Value {
+                match (self, rhs) {
+                    $(
+                        (Value::$variant(lhs), Value::$variant(rhs)) => {
+                            let ($lhs, $rhs) = (lhs, rhs);
+                            Value::$variant($expr)
+                        },
+                    )+
+                    _ => unreachable!(),
+                }
+            }
+        }
+    };
 }
 
 impl_val_op_binary!(std::ops::Add => fn add: Int, Long, Float, Double);
@@ -57,9 +74,18 @@ impl_val_op_binary!(std::ops::Rem => fn rem: Int, Long, Float, Double);
 impl_val_op_binary!(std::ops::BitAnd => fn bitand: Int, Long);
 impl_val_op_binary!(std::ops::BitOr => fn bitor: Int, Long);
 impl_val_op_binary!(std::ops::BitXor => fn bitxor: Int, Long);
+impl_val_op_binary!(std::ops::Shr => fn shr: Int, Long);
 impl_val_op_unary!(std::ops::Neg => fn neg: Int, Long, Float, Double);
 
 impl Value {
+    fn ushr(self, rhs: Value) -> Value {
+        match (self, rhs) {
+            (Value::Int(lhs), Value::Int(rhs)) => Value::Int((lhs as u32 >> rhs) as i32),
+            (Value::Long(lhs), Value::Long(rhs)) => Value::Long((lhs as u32 >> rhs) as i64),
+            _ => unreachable!()
+        }
+    }
+
     pub fn default_for_ty(ty: &FieldType) -> Value {
         match ty {
             FieldType::BaseType(BaseType::B) => Value::Byte(Default::default()),
@@ -72,6 +98,29 @@ impl Value {
             FieldType::BaseType(BaseType::Z) => Value::Boolean(Default::default()),
             FieldType::ObjectType(_) => Value::Object(Default::default()),
             FieldType::ArrayType(_) => Value::Array(Default::default()),
+        }
+    }
+
+    pub fn extend_32(self) -> Value {
+        match self {
+            Value::Byte(x) => Value::Int(x as i32),
+            Value::Short(x) => Value::Int(x as i32),
+            Value::Boolean(x) => Value::Int(x as i32),
+            x => x
+        }
+    }
+
+    pub fn store_ty(self, ty: &FieldType) -> Value {
+        if let Value::Int(int) = self {
+            match ty {
+                FieldType::BaseType(BaseType::I) => Value::Int(int),
+                FieldType::BaseType(BaseType::B) => Value::Byte(int as i8),
+                FieldType::BaseType(BaseType::S) => Value::Short(int as i16),
+                FieldType::BaseType(BaseType::Z) => Value::Boolean((int & 0b1) == 1),
+                _ => unimplemented!()
+            }
+        } else {
+            self
         }
     }
 }

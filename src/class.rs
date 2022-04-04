@@ -16,6 +16,13 @@ pub struct Field {
     pub descriptor: FieldDescriptor,
 }
 
+impl Field {
+    pub fn store_static(&mut self, val: Value) {
+        let ty = &self.descriptor.0;
+        self.static_value = Some(val.store_ty(ty));
+    }
+}
+
 #[derive(Debug)]
 pub struct Method {
     pub defining_class: ClassId,
