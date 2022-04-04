@@ -62,5 +62,6 @@ impl Object {
 
 #[derive(Debug)]
 pub struct Array {
+    pub ty: FieldType,
     pub contents: Box<[Value]>,
 }

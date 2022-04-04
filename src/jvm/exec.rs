@@ -1,7 +1,7 @@
 use super::Thread;
 use crate::class::Class;
 use crate::class_file::constant_pool::CPInfo;
-use crate::class_file::descriptors::{BaseType, FieldType};
+use crate::class_file::descriptors::{BaseType, FieldType, ObjectType};
 use crate::class_loader::method_area;
 use crate::heap::{heap, Array, Object};
 use crate::value::Value;
@@ -222,6 +222,35 @@ impl Thread {
                 78 => self
                     .locals
                     .insert(3, Some(self.operand_stack.pop().unwrap())),
+                // iastore, lastore, fastore, dastore, aastore
+                79..=83 => {
+                    let val = self.pop();
+                    let idx = match self.pop() {
+                        Value::Int(idx) => idx,
+                        _ => unreachable!(),
+                    };
+                    let arr = match self.pop() {
+                        Value::Array(Some(arr)) => arr,
+                        Value::Array(None) => panic!("NullPointerException"),
+                        _ => unreachable!(),
+                    };
+                    heap().arrays[arr].contents[idx as usize] = val;
+                }
+                // bastore, castore, sastore
+                84..=86 => {
+                    let val = self.pop();
+                    let idx = match self.pop() {
+                        Value::Int(idx) => idx,
+                        _ => unreachable!(),
+                    };
+                    let arr = match self.pop() {
+                        Value::Array(Some(arr)) => arr,
+                        Value::Array(None) => panic!("NullPointerException"),
+                        _ => unreachable!(),
+                    };
+                    let arr = &mut heap().arrays[arr];
+                    arr.contents[idx as usize] = val.store_ty(&arr.ty);
+                }
                 // dup
                 89 => {
                     let val = *self.operand_stack.last().unwrap();
@@ -417,8 +446,7 @@ impl Thread {
                         _ => panic!("array count must be int"),
                     };
                     assert!(count >= 0, "NegativeArraySizeException");
-
-                    let val = Value::default_for_ty(&match atype {
+                    let ty = match atype {
                         4 => FieldType::BaseType(BaseType::Z),
                         5 => FieldType::BaseType(BaseType::C),
                         6 => FieldType::BaseType(BaseType::F),
@@ -428,14 +456,18 @@ impl Thread {
                         10 => FieldType::BaseType(BaseType::I),
                         11 => FieldType::BaseType(BaseType::J),
                         _ => panic!(),
-                    });
+                    };
+                    let val = Value::default_for_ty(&ty);
                     let arr: Box<[Value]> = (0..count).map(|_| val).collect();
-                    let id = heap().arrays.alloc(Array { contents: arr });
+                    let id = heap().arrays.alloc(Array { contents: arr, ty });
                     self.operand_stack.push(Value::Array(Some(id)));
                 }
                 // anewarray
                 189 => {
                     let idx = self.read_u16();
+                    let class_id = self.class_id();
+                    let item_class = Class::class_reference(class_id, idx);
+                    let class_name = method_area().classes[item_class].name.clone();
                     let count = match self.operand_stack.pop().unwrap() {
                         Value::Int(val) => val,
                         _ => panic!("array count must be int"),
@@ -444,7 +476,10 @@ impl Thread {
 
                     let arr: Box<[Value]> =
                         (0..count).map(|_| Value::Object(Option::None)).collect();
-                    let id = heap().arrays.alloc(Array { contents: arr });
+                    let id = heap().arrays.alloc(Array {
+                        contents: arr,
+                        ty: FieldType::ObjectType(ObjectType { class_name }),
+                    });
                     self.operand_stack.push(Value::Array(Some(id)));
                 }
                 // arraylength
@@ -465,7 +500,7 @@ impl Thread {
                         Value::Object(None) => {
                             self.operand_stack.push(val);
                             continue;
-                        },
+                        }
                         a => unreachable!("{a:?}"),
                     };
                     let obj_class = heap().objects[obj].class;
@@ -487,7 +522,7 @@ impl Thread {
                         Value::Object(None) => {
                             self.operand_stack.push(Value::Int(0));
                             continue;
-                        },
+                        }
                         a => unreachable!("{a:?}"),
                     };
                     let obj_class = heap().objects[obj].class;

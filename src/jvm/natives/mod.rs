@@ -1,7 +1,7 @@
+mod cds;
 mod class;
 mod object;
 mod string;
-mod cds;
 
 use super::Thread;
 

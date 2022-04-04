@@ -116,7 +116,7 @@ pub enum BaseType {
 
 #[derive(Debug, PartialEq)]
 pub struct ObjectType {
-    class_name: String,
+    pub class_name: String,
 }
 
 #[derive(Debug, PartialEq)]

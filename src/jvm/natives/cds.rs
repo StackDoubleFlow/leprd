@@ -1,6 +1,6 @@
 //! Class Data Sharing
 //! https://docs.oracle.com/en/java/javase/18/vm/class-data-sharing.html
- 
+
 use crate::jvm::Thread;
 use crate::value::Value;
 

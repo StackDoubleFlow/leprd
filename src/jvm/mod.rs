@@ -2,6 +2,7 @@ mod exec;
 mod natives;
 
 use crate::class_file::attributes::CodeAttribute;
+use crate::class_file::descriptors::{BaseType, FieldType};
 use crate::class_loader::{method_area, ClassId, MethodId};
 use crate::heap::{heap, Array, Object, ObjectId};
 use crate::value::Value;
@@ -142,7 +143,10 @@ impl Thread {
             .flat_map(|x| x.to_ne_bytes())
             .map(|b| Value::Byte(b as i8))
             .collect();
-        let arr_id = heap().arrays.alloc(Array { contents: arr });
+        let arr_id = heap().arrays.alloc(Array {
+            contents: arr,
+            ty: FieldType::BaseType(BaseType::B),
+        });
 
         let mut ma = method_area();
         let str_class = ma.resolve_class("java/lang/String");
