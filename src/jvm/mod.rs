@@ -139,7 +139,7 @@ impl Thread {
     fn create_string(&mut self, str: &str) -> ObjectId {
         let arr: Box<[Value]> = str
             .encode_utf16()
-            .flat_map(|x| x.to_be_bytes())
+            .flat_map(|x| x.to_ne_bytes())
             .map(|b| Value::Byte(b as i8))
             .collect();
         let arr_id = heap().arrays.alloc(Array { contents: arr });
@@ -170,5 +170,18 @@ impl Thread {
 
     fn pop(&mut self) -> Value {
         self.operand_stack.pop().unwrap()
+    }
+
+    fn arr_load(&mut self) -> Value {
+        let idx = match self.pop() {
+            Value::Int(x) => x as usize,
+            _ => unreachable!(),
+        };
+        let arr = match self.pop() {
+            Value::Array(Some(arr)) => arr,
+            Value::Array(None) => panic!("NullPointerException"),
+            _ => unreachable!(),
+        };
+        heap().arrays[arr].contents[idx]
     }
 }

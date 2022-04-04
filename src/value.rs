@@ -4,7 +4,7 @@ use crate::heap::{ArrayId, ObjectId};
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Value {
     Byte(i8),
-    Char(char),
+    Char(u8),
     Double(f64),
     Float(f32),
     Int(i32),
@@ -47,23 +47,23 @@ macro_rules! impl_val_op_binary {
             }
         }
     };
-    ($trait:ty => fn $fn_name:ident($lhs:ident, $rhs:ident) = { $ex:expr }: $($variant:ident),+) => {
-        impl $trait for Value {
-            type Output = Value;
-
-            fn $fn_name(self, rhs: Value) -> Value {
-                match (self, rhs) {
-                    $(
-                        (Value::$variant(lhs), Value::$variant(rhs)) => {
-                            let ($lhs, $rhs) = (lhs, rhs);
-                            Value::$variant($expr)
-                        },
-                    )+
-                    _ => unreachable!(),
-                }
-            }
-        }
-    };
+    // ($trait:ty => fn $fn_name:ident($lhs:ident, $rhs:ident) = { $ex:expr }: $($variant:ident),+) => {
+    //     impl $trait for Value {
+    //         type Output = Value;
+    //
+    //         fn $fn_name(self, rhs: Value) -> Value {
+    //             match (self, rhs) {
+    //                 $(
+    //                     (Value::$variant(lhs), Value::$variant(rhs)) => {
+    //                         let ($lhs, $rhs) = (lhs, rhs);
+    //                         Value::$variant($expr)
+    //                     },
+    //                 )+
+    //                 _ => unreachable!(),
+    //             }
+    //         }
+    //     }
+    // };
 }
 
 impl_val_op_binary!(std::ops::Add => fn add: Int, Long, Float, Double);
@@ -74,6 +74,7 @@ impl_val_op_binary!(std::ops::Rem => fn rem: Int, Long, Float, Double);
 impl_val_op_binary!(std::ops::BitAnd => fn bitand: Int, Long);
 impl_val_op_binary!(std::ops::BitOr => fn bitor: Int, Long);
 impl_val_op_binary!(std::ops::BitXor => fn bitxor: Int, Long);
+impl_val_op_binary!(std::ops::Shl => fn shl: Int, Long);
 impl_val_op_binary!(std::ops::Shr => fn shr: Int, Long);
 impl_val_op_unary!(std::ops::Neg => fn neg: Int, Long, Float, Double);
 
@@ -106,6 +107,7 @@ impl Value {
             Value::Byte(x) => Value::Int(x as i32),
             Value::Short(x) => Value::Int(x as i32),
             Value::Boolean(x) => Value::Int(x as i32),
+            Value::Char(x) => Value::Int(x as i32),
             x => x
         }
     }

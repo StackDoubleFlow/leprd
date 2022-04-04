@@ -14,6 +14,17 @@ macro_rules! binary_op {
     }};
 }
 
+macro_rules! cast {
+    ($self:ident, $from:ident, $to:ident, $val:ident -> $expr:expr) => {{
+        let val = $self.pop();
+        let new = match val {
+            Value::$from($val) => Value::$to($expr),
+            _ => unreachable!(),
+        };
+        $self.operand_stack.push(new);
+    }};
+}
+
 impl Thread {
     fn ldc(&mut self, cp_idx: u16) {
         let class_id = self.class_id();
@@ -62,6 +73,26 @@ impl Thread {
                 6 => self.operand_stack.push(Value::Int(3)),
                 7 => self.operand_stack.push(Value::Int(4)),
                 8 => self.operand_stack.push(Value::Int(5)),
+                // lconst_<l>
+                9 => self.operand_stack.push(Value::Long(0)),
+                10 => self.operand_stack.push(Value::Long(1)),
+                // fconst_<f>
+                11 => self.operand_stack.push(Value::Float(0.0)),
+                12 => self.operand_stack.push(Value::Float(1.0)),
+                13 => self.operand_stack.push(Value::Float(2.0)),
+                // dconst_<d>
+                14 => self.operand_stack.push(Value::Double(0.0)),
+                15 => self.operand_stack.push(Value::Double(1.0)),
+                // bipush
+                16 => {
+                    let b = self.read_ins() as i8;
+                    self.operand_stack.push(Value::Int(b as i32))
+                }
+                // sipush
+                17 => {
+                    let s = self.read_u16() as i16;
+                    self.operand_stack.push(Value::Int(s as i32))
+                }
                 // ldc
                 18 => {
                     let cp_idx = self.read_ins() as u16;
@@ -77,21 +108,105 @@ impl Thread {
                     let cp_idx = self.read_u16();
                     self.ldc(cp_idx)
                 }
-                // float_<n>
-                34 => self.operand_stack.push(self.locals[0].unwrap()),
-                35 => self.operand_stack.push(self.locals[1].unwrap()),
-                36 => self.operand_stack.push(self.locals[2].unwrap()),
-                37 => self.operand_stack.push(self.locals[3].unwrap()),
+                // iload, lload, fload, dload, aload
+                21..=25 => {
+                    let idx = self.read_ins() as usize;
+                    self.operand_stack.push(self.locals[idx].unwrap());
+                }
                 // iload_<n>
                 26 => self.operand_stack.push(self.locals[0].unwrap()),
                 27 => self.operand_stack.push(self.locals[1].unwrap()),
                 28 => self.operand_stack.push(self.locals[2].unwrap()),
                 29 => self.operand_stack.push(self.locals[3].unwrap()),
+                // lload_<n>
+                30 => self.operand_stack.push(self.locals[0].unwrap()),
+                31 => self.operand_stack.push(self.locals[1].unwrap()),
+                32 => self.operand_stack.push(self.locals[2].unwrap()),
+                33 => self.operand_stack.push(self.locals[3].unwrap()),
+                // fload_<n>
+                34 => self.operand_stack.push(self.locals[0].unwrap()),
+                35 => self.operand_stack.push(self.locals[1].unwrap()),
+                36 => self.operand_stack.push(self.locals[2].unwrap()),
+                37 => self.operand_stack.push(self.locals[3].unwrap()),
+                // dload_<n>
+                38 => self.operand_stack.push(self.locals[0].unwrap()),
+                39 => self.operand_stack.push(self.locals[1].unwrap()),
+                40 => self.operand_stack.push(self.locals[2].unwrap()),
+                41 => self.operand_stack.push(self.locals[3].unwrap()),
                 // aload_<n>
                 42 => self.operand_stack.push(self.locals[0].unwrap()),
                 43 => self.operand_stack.push(self.locals[1].unwrap()),
                 44 => self.operand_stack.push(self.locals[2].unwrap()),
                 45 => self.operand_stack.push(self.locals[3].unwrap()),
+                // iaload, laload, faload, daload, aaload
+                46..=50 => {
+                    let val = self.arr_load();
+                    self.operand_stack.push(val);
+                }
+                // baload, caload, saload
+                51..=53 => {
+                    let val = self.arr_load().extend_32();
+                    self.operand_stack.push(val);
+                }
+                // istore, lstore, fstore, dstore, astore
+                54..=58 => {
+                    let idx = self.read_ins() as usize;
+                    self
+                        .locals
+                        .insert(idx, Some(self.operand_stack.pop().unwrap()))
+                }
+                // istore_<n>
+                59 => self
+                    .locals
+                    .insert(0, Some(self.operand_stack.pop().unwrap())),
+                60 => self
+                    .locals
+                    .insert(1, Some(self.operand_stack.pop().unwrap())),
+                61 => self
+                    .locals
+                    .insert(2, Some(self.operand_stack.pop().unwrap())),
+                62 => self
+                    .locals
+                    .insert(3, Some(self.operand_stack.pop().unwrap())),
+                // lstore_<n>
+                63 => self
+                    .locals
+                    .insert(0, Some(self.operand_stack.pop().unwrap())),
+                64 => self
+                    .locals
+                    .insert(1, Some(self.operand_stack.pop().unwrap())),
+                65 => self
+                    .locals
+                    .insert(2, Some(self.operand_stack.pop().unwrap())),
+                66 => self
+                    .locals
+                    .insert(3, Some(self.operand_stack.pop().unwrap())),
+                // fstore_<n>
+                67 => self
+                    .locals
+                    .insert(0, Some(self.operand_stack.pop().unwrap())),
+                68 => self
+                    .locals
+                    .insert(1, Some(self.operand_stack.pop().unwrap())),
+                69 => self
+                    .locals
+                    .insert(2, Some(self.operand_stack.pop().unwrap())),
+                70 => self
+                    .locals
+                    .insert(3, Some(self.operand_stack.pop().unwrap())),
+                // dstore_<n>
+                71 => self
+                    .locals
+                    .insert(0, Some(self.operand_stack.pop().unwrap())),
+                72 => self
+                    .locals
+                    .insert(1, Some(self.operand_stack.pop().unwrap())),
+                73 => self
+                    .locals
+                    .insert(2, Some(self.operand_stack.pop().unwrap())),
+                74 => self
+                    .locals
+                    .insert(3, Some(self.operand_stack.pop().unwrap())),
                 // astore_<n>
                 75 => self
                     .locals
@@ -110,13 +225,32 @@ impl Thread {
                     let val = *self.operand_stack.last().unwrap();
                     self.operand_stack.push(val);
                 }
+                // isub
+                100 => binary_op!(self, -),
+                // ishl
+                120 => binary_op!(self, <<),
                 // ishr
                 122 => binary_op!(self, >>),
+                // iand
+                126 => binary_op!(self, &),
+                // ior
+                128 => binary_op!(self, |),
+                // iinc
+                132 => {
+                    let c = self.read_ins() as i8 as i32;
+                    let idx = self.read_ins() as usize;
+                    match &mut self.locals[idx] {
+                        Some(Value::Int(val)) => *val += c,
+                        _ => unreachable!()
+                    }
+                }
+                // i2c
+                146 => cast!(self, Int, Int, val -> val % 0xF),
                 // if<cond>
                 153..=158 => {
                     let val = match self.pop() {
                         Value::Int(val) => val,
-                        a => unreachable!(),
+                        _ => unreachable!(),
                     };
                     self.br_if(
                         cur_pc,
@@ -223,12 +357,13 @@ impl Thread {
                     let idx = self.read_u16();
                     let class_id = self.class_id();
                     let field = Class::field_reference(class_id, idx);
+                    let val = self.pop();
                     let obj = match self.pop() {
                         Value::Object(Some(obj)) => obj,
                         Value::Object(None) => panic!("NullPointerException"),
-                        _ => unreachable!(),
+                        a => unreachable!("{a:?}"),
                     };
-                    heap().objects[obj].store_field(field, self.pop());
+                    heap().objects[obj].store_field(field, val);
                 }
                 // invokevirtual
                 182 => {
