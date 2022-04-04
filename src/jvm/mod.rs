@@ -56,6 +56,10 @@ impl Thread {
 
     fn call_method(&mut self, method_id: MethodId) {
         println!("Calling method: {}", method_area().methods[method_id].name);
+        if method_area().methods[method_id].code.is_none() {
+            println!("TODO: Native method call");
+            return;
+        }
         // TODO: params
         for _ in 0..method_area().methods[method_id].descriptor.0.len() {}
         let stack_frame = StackFrame {
@@ -67,13 +71,16 @@ impl Thread {
         self.method = method_id;
         self.code = method_area().methods[method_id].code.clone().unwrap();
         self.pc = 0;
+        self.run();
     }
 
     fn ensure_initialized(&mut self, class_id: ClassId) {
-        let ma = method_area();
-        let class = &ma.classes[class_id];
+        let mut ma = method_area();
+        let class = &mut ma.classes[class_id];
         if !class.initialized {
             println!("Initializing class: {}", class.name);
+            class.initialized = true;
+            let class = &ma.classes[class_id];
             if let Some(method) = class
                 .methods
                 .iter()
@@ -84,7 +91,6 @@ impl Thread {
                 self.call_method(method);
             }
         }
-        method_area().classes[class_id].initialized = true;
     }
 
     pub fn run(&mut self) {
@@ -93,6 +99,8 @@ impl Thread {
             match opcode {
                 // nop
                 0 => {}
+                // aconst_null
+                1 => self.operand_stack.push(Value::Object(None)),
                 // getstatic
                 178 => {
                     let idx = self.read_u16();
@@ -102,6 +110,15 @@ impl Thread {
                     self.ensure_initialized(defining_class);
                     self.operand_stack
                         .push(method_area().fields[field].static_value.unwrap());
+                }
+                // putstatic
+                179 => {
+                    let idx = self.read_u16();
+                    let class_id = self.class_id();
+                    let field = Class::field_reference(class_id, idx);
+                    let defining_class = method_area().fields[field].defining_class;
+                    self.ensure_initialized(defining_class);
+                    method_area().fields[field].static_value = self.operand_stack.pop();
                 }
                 // invokestatic
                 184 => {
