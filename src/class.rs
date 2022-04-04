@@ -2,6 +2,7 @@ use crate::class_file::attributes::CodeAttribute;
 use crate::class_file::descriptors::{FieldDescriptor, MethodDescriptor};
 use crate::class_file::ConstantPool;
 use crate::class_loader::{method_area, ClassId, ClassLoader, FieldId, MethodId};
+use crate::heap::{ObjectId, heap, Object};
 use crate::value::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -64,6 +65,7 @@ pub struct Class {
     /// Keyed using constant pool index to reference entry
     pub references: HashMap<u16, Reference>,
     pub initialized: bool,
+    pub class_obj: Option<ObjectId>,
 
     pub defining_loader: ClassLoader,
     pub name: String,
@@ -135,5 +137,18 @@ impl Class {
             Reference::Method(method) => method,
             _ => unreachable!(),
         }
+    }
+
+    pub fn obj(id: ClassId) -> ObjectId {
+        let mut ma = method_area();
+        if let Some(obj_id) = ma.classes[id].class_obj {
+            return obj_id;
+        }
+
+        let class_class = ma.resolve_class("java/lang/Class");
+        drop(ma);
+        let obj = Object::new(class_class);
+        // TODO: Initialize fields such as classLoader
+        obj
     }
 }

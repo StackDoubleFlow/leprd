@@ -65,7 +65,10 @@ impl Thread {
             ma.classes[method.defining_class].name, method.name
         );
         if method.code.is_none() {
-            println!("TODO: Native method call");
+            let class_name = ma.classes[method.defining_class].name.clone();
+            let method_name = method.name.clone();
+            drop(ma);
+            natives::run_native(self, class_name, method_name);
             return;
         }
 

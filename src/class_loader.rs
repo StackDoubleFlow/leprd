@@ -180,6 +180,7 @@ pub fn load_class_bootstrap(ma: &mut MethodArea, name: &str) -> ClassId {
         initialized: false,
         defining_loader: ClassLoader::Bootstrap,
         references,
+        class_obj: None,
         name: name.clone(),
         super_class,
         interfaces,
