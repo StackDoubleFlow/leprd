@@ -104,6 +104,7 @@ impl Thread {
 
         drop(ma);
         let res = self.run();
+        println!("Returned from method");
 
         let stack_frame = self.stack_frames.pop().unwrap();
         self.method = stack_frame.method;

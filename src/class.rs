@@ -2,7 +2,7 @@ use crate::class_file::attributes::CodeAttribute;
 use crate::class_file::descriptors::{FieldDescriptor, MethodDescriptor};
 use crate::class_file::ConstantPool;
 use crate::class_loader::{method_area, ClassId, ClassLoader, FieldId, MethodId};
-use crate::heap::{ObjectId, heap, Object};
+use crate::heap::{heap, Object, ObjectId};
 use crate::value::Value;
 use std::collections::HashMap;
 use std::sync::Arc;

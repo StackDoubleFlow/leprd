@@ -34,10 +34,10 @@ impl Thread {
     }
 
     pub fn run(&mut self) -> Option<Value> {
-        let cur_pc = self.pc;
         loop {
+            let cur_pc = self.pc;
             let opcode = self.read_ins();
-            dbg!(opcode);
+            println!("pc: {}, opcode: {}", cur_pc, opcode);
             match opcode {
                 // nop
                 0 => {}
@@ -82,10 +82,18 @@ impl Thread {
                 44 => self.operand_stack.push(self.locals[2].unwrap()),
                 45 => self.operand_stack.push(self.locals[3].unwrap()),
                 // astore_<n>
-                75 => self.locals.insert(0, Some(self.operand_stack.pop().unwrap())),
-                76 => self.locals.insert(1, Some(self.operand_stack.pop().unwrap())),
-                77 => self.locals.insert(2, Some(self.operand_stack.pop().unwrap())),
-                78 => self.locals.insert(3, Some(self.operand_stack.pop().unwrap())),
+                75 => self
+                    .locals
+                    .insert(0, Some(self.operand_stack.pop().unwrap())),
+                76 => self
+                    .locals
+                    .insert(1, Some(self.operand_stack.pop().unwrap())),
+                77 => self
+                    .locals
+                    .insert(2, Some(self.operand_stack.pop().unwrap())),
+                78 => self
+                    .locals
+                    .insert(3, Some(self.operand_stack.pop().unwrap())),
                 // dup
                 89 => {
                     let val = *self.operand_stack.last().unwrap();
@@ -97,15 +105,18 @@ impl Thread {
                         Value::Int(val) => val,
                         _ => unreachable!(),
                     };
-                    self.br_if(cur_pc, match opcode {
-                        153 => val == 0,
-                        154 => val != 0,
-                        155 => val < 0,
-                        156 => val >= 0,
-                        157 => val > 0,
-                        158 => val <= 0,
-                        _ => unreachable!(),
-                    });
+                    self.br_if(
+                        cur_pc,
+                        match opcode {
+                            153 => val == 0,
+                            154 => val != 0,
+                            155 => val < 0,
+                            156 => val >= 0,
+                            157 => val > 0,
+                            158 => val <= 0,
+                            _ => unreachable!(),
+                        },
+                    );
                 }
                 // if_icmp<cond>
                 159..=164 => {
@@ -117,15 +128,18 @@ impl Thread {
                         Value::Int(val) => val,
                         _ => unreachable!(),
                     };
-                    self.br_if(cur_pc, match opcode {
-                        159 => lhs == rhs,
-                        160 => lhs != rhs,
-                        161 => lhs < rhs,
-                        162 => lhs >= rhs,
-                        163 => lhs > rhs,
-                        164 => lhs <= rhs,
-                        _ => unreachable!(),
-                    });
+                    self.br_if(
+                        cur_pc,
+                        match opcode {
+                            159 => lhs == rhs,
+                            160 => lhs != rhs,
+                            161 => lhs < rhs,
+                            162 => lhs >= rhs,
+                            163 => lhs > rhs,
+                            164 => lhs <= rhs,
+                            _ => unreachable!(),
+                        },
+                    );
                 }
                 // if_acmp<cond>
                 165..=166 => {
@@ -137,12 +151,23 @@ impl Thread {
                         Value::Object(val) => val,
                         _ => unreachable!(),
                     };
-                    self.br_if(cur_pc, match opcode {
-                        165 => lhs == rhs,
-                        166 => lhs != rhs,
-                        _ => unreachable!()
-                    });
+                    self.br_if(
+                        cur_pc,
+                        match opcode {
+                            165 => lhs == rhs,
+                            166 => lhs != rhs,
+                            _ => unreachable!(),
+                        },
+                    );
                 }
+                // ireturn
+                172 => return self.operand_stack.pop(),
+                // lreturn
+                173 => return self.operand_stack.pop(),
+                // freturn
+                174 => return self.operand_stack.pop(),
+                // dreturn
+                175 => return self.operand_stack.pop(),
                 // areturn
                 176 => return self.operand_stack.pop(),
                 // return
@@ -174,7 +199,7 @@ impl Thread {
                     let obj = match self.pop() {
                         Value::Object(Some(obj)) => obj,
                         Value::Object(None) => panic!("NullPointerException"),
-                        _ => unreachable!()
+                        _ => unreachable!(),
                     };
                     self.operand_stack.push(heap().objects[obj].fields[&field]);
                 }
@@ -234,6 +259,20 @@ impl Thread {
                     let id = heap().arrays.alloc(Array { contents: arr });
                     self.operand_stack.push(Value::Array(Some(id)));
                 }
+                // anewarray
+                189 => {
+                    let idx = self.read_u16();
+                    let count = match self.operand_stack.pop().unwrap() {
+                        Value::Int(val) => val,
+                        _ => panic!("array count must be int"),
+                    };
+                    assert!(count >= 0, "NegativeArraySizeException");
+
+                    let arr: Box<[Value]> =
+                        (0..count).map(|_| Value::Object(Option::None)).collect();
+                    let id = heap().arrays.alloc(Array { contents: arr });
+                    self.operand_stack.push(Value::Array(Some(id)));
+                }
                 // arraylength
                 190 => {
                     let arr = match self.operand_stack.pop() {
@@ -250,11 +289,14 @@ impl Thread {
                         Value::Object(val) => val,
                         _ => unreachable!(),
                     };
-                    self.br_if(cur_pc, match opcode {
-                        198 => val.is_none(),
-                        199 => val.is_some(),
-                        _ => unreachable!(),
-                    });
+                    self.br_if(
+                        cur_pc,
+                        match opcode {
+                            198 => val.is_none(),
+                            199 => val.is_some(),
+                            _ => unreachable!(),
+                        },
+                    );
                 }
                 _ => unimplemented!("opcode: {}", opcode),
             }
