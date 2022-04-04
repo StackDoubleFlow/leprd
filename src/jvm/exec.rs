@@ -33,7 +33,7 @@ impl Thread {
         self.operand_stack.push(val);
     }
 
-    pub fn run(&mut self) {
+    pub fn run(&mut self) -> Option<Value> {
         let cur_pc = self.pc;
         loop {
             let opcode = self.read_ins();
@@ -81,6 +81,11 @@ impl Thread {
                 43 => self.operand_stack.push(self.locals[1].unwrap()),
                 44 => self.operand_stack.push(self.locals[2].unwrap()),
                 45 => self.operand_stack.push(self.locals[3].unwrap()),
+                // astore_<n>
+                75 => self.locals.insert(0, Some(self.operand_stack.pop().unwrap())),
+                76 => self.locals.insert(1, Some(self.operand_stack.pop().unwrap())),
+                77 => self.locals.insert(2, Some(self.operand_stack.pop().unwrap())),
+                78 => self.locals.insert(3, Some(self.operand_stack.pop().unwrap())),
                 // dup
                 89 => {
                     let val = *self.operand_stack.last().unwrap();
@@ -138,8 +143,10 @@ impl Thread {
                         _ => unreachable!()
                     });
                 }
+                // areturn
+                176 => return self.operand_stack.pop(),
                 // return
-                177 => return,
+                177 => return None,
                 // getstatic
                 178 => {
                     let idx = self.read_u16();
@@ -158,6 +165,18 @@ impl Thread {
                     let defining_class = method_area().fields[field].defining_class;
                     self.ensure_initialized(defining_class);
                     method_area().fields[field].static_value = self.operand_stack.pop();
+                }
+                // getfield
+                180 => {
+                    let idx = self.read_u16();
+                    let class_id = self.class_id();
+                    let field = Class::field_reference(class_id, idx);
+                    let obj = match self.pop() {
+                        Value::Object(Some(obj)) => obj,
+                        Value::Object(None) => panic!("NullPointerException"),
+                        _ => unreachable!()
+                    };
+                    self.operand_stack.push(heap().objects[obj].fields[&field]);
                 }
                 // invokevirtual
                 182 => {
@@ -178,6 +197,8 @@ impl Thread {
                     let idx = self.read_u16();
                     let class_id = self.class_id();
                     let method = Class::method_reference(class_id, idx);
+                    let defining_class = method_area().methods[method].defining_class;
+                    self.ensure_initialized(defining_class);
                     self.call_method(method, true);
                 }
                 // new
@@ -222,6 +243,18 @@ impl Thread {
                     };
                     let len = heap().arrays[arr].contents.len() as i32;
                     self.operand_stack.push(Value::Int(len));
+                }
+                // ifnull, ifnonnull
+                198..=199 => {
+                    let val = match self.pop() {
+                        Value::Object(val) => val,
+                        _ => unreachable!(),
+                    };
+                    self.br_if(cur_pc, match opcode {
+                        198 => val.is_none(),
+                        199 => val.is_some(),
+                        _ => unreachable!(),
+                    });
                 }
                 _ => unimplemented!("opcode: {}", opcode),
             }

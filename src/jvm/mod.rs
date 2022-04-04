@@ -103,13 +103,16 @@ impl Thread {
         self.pc = 0;
 
         drop(ma);
-        self.run();
+        let res = self.run();
 
         let stack_frame = self.stack_frames.pop().unwrap();
         self.method = stack_frame.method;
         self.code = method_area().methods[self.method].code.clone().unwrap();
         self.pc = stack_frame.return_pc;
         self.locals = stack_frame.locals;
+        if let Some(res) = res {
+            self.operand_stack.push(res);
+        }
     }
 
     fn ensure_initialized(&mut self, class_id: ClassId) {
