@@ -1,4 +1,5 @@
 use crate::class_file::attributes::CodeAttribute;
+use crate::class_file::descriptors::MethodDescriptor;
 use crate::class_file::ConstantPool;
 use crate::class_loader::{method_area, ClassId, ClassLoader, FieldId, MethodId};
 use crate::value::Value;
@@ -17,7 +18,7 @@ pub struct Field {
 pub struct Method {
     pub defining_class: ClassId,
     pub name: String,
-    pub descriptor: String,
+    pub descriptor: MethodDescriptor,
     pub code: Option<Arc<CodeAttribute>>,
     pub access_flags: u16,
 }

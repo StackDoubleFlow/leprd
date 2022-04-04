@@ -1,5 +1,38 @@
-use std::str::Chars;
+#[derive(Debug, PartialEq)]
+pub struct MethodDescriptor(pub Vec<ParameterDescriptor>, pub ReturnDescriptor);
 
+impl MethodDescriptor {
+    pub fn read(s: &str) -> MethodDescriptor {
+        let mut chars = s.chars().skip(1).peekable();
+        let mut params = Vec::new();
+        loop {
+            match chars.peek() {
+                Some(')') => break,
+                Some(_) => params.push(ParameterDescriptor(FieldType::read(&mut chars))),
+                None => unreachable!(),
+            }
+        }
+        chars.next();
+        let return_des = match chars.peek() {
+            Some('V') => ReturnDescriptor::Void,
+            Some(_) => ReturnDescriptor::FieldType(FieldType::read(&mut chars)),
+            None => unreachable!(),
+        };
+
+        MethodDescriptor(params, return_des)
+    }
+}
+
+#[derive(Debug, PartialEq)]
+pub struct ParameterDescriptor(FieldType);
+
+#[derive(Debug, PartialEq)]
+pub enum ReturnDescriptor {
+    FieldType(FieldType),
+    Void,
+}
+
+#[derive(Debug, PartialEq)]
 pub struct FieldDescriptor(pub FieldType);
 
 impl FieldDescriptor {
@@ -9,6 +42,7 @@ impl FieldDescriptor {
     }
 }
 
+#[derive(Debug, PartialEq)]
 pub enum FieldType {
     BaseType(BaseType),
     ObjectType(ObjectType),
@@ -16,7 +50,7 @@ pub enum FieldType {
 }
 
 impl FieldType {
-    fn read(cs: &mut Chars) -> FieldType {
+    fn read(cs: &mut impl Iterator<Item = char>) -> FieldType {
         match cs.next().unwrap() {
             'B' => FieldType::BaseType(BaseType::B),
             'C' => FieldType::BaseType(BaseType::C),
@@ -37,11 +71,12 @@ impl FieldType {
             'S' => FieldType::BaseType(BaseType::S),
             'Z' => FieldType::BaseType(BaseType::Z),
             '[' => FieldType::ArrayType(ArrayType(Box::new(ComponentType(FieldType::read(cs))))),
-            _ => unreachable!(),
+            c => unreachable!("field type {}", c),
         }
     }
 }
 
+#[derive(Debug, PartialEq)]
 pub enum BaseType {
     /// byte
     B,
@@ -61,10 +96,13 @@ pub enum BaseType {
     Z,
 }
 
+#[derive(Debug, PartialEq)]
 pub struct ObjectType {
     class_name: String,
 }
 
+#[derive(Debug, PartialEq)]
 pub struct ArrayType(Box<ComponentType>);
 
+#[derive(Debug, PartialEq)]
 pub struct ComponentType(FieldType);

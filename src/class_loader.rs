@@ -1,6 +1,6 @@
 use crate::class::{Class, Field, Method, Reference};
 use crate::class_file::constant_pool::CPInfo;
-use crate::class_file::descriptors::FieldDescriptor;
+use crate::class_file::descriptors::{FieldDescriptor, MethodDescriptor};
 use crate::class_file::{fields, ClassFile};
 use crate::value::Value;
 use crate::CONFIG;
@@ -49,6 +49,7 @@ impl MethodArea {
     pub fn resolve_method(&self, class: ClassId, name: &str, descriptor: &str) -> MethodId {
         // TODO: Recursive method lookup
         // 5.4.3.3. Method Resolution
+        let descriptor = MethodDescriptor::read(descriptor);
         let class = &self.classes[class];
         class
             .methods
@@ -136,7 +137,7 @@ pub fn load_class_bootstrap(ma: &mut MethodArea, name: &str) -> ClassId {
         let id = ma.methods.alloc(Method {
             defining_class: class_id,
             name,
-            descriptor,
+            descriptor: MethodDescriptor::read(&descriptor),
             access_flags: method.access_flags,
             code,
         });
