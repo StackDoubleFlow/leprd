@@ -158,6 +158,7 @@ impl Value {
                 FieldType::BaseType(BaseType::B) => Value::Byte(int as i8),
                 FieldType::BaseType(BaseType::S) => Value::Short(int as i16),
                 FieldType::BaseType(BaseType::Z) => Value::Boolean((int & 0b1) == 1),
+                FieldType::BaseType(BaseType::C) => Value::Char(int as u8),
                 _ => unimplemented!(),
             }
         } else {

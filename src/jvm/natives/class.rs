@@ -29,9 +29,9 @@ pub fn get_primitive_class(thread: &mut Thread) {
         let class_name = match str.as_str() {
             "byte" => "java/lang/Byte",
             "short" => "java/lang/Short",
-            "int" => "java/lang/Int",
+            "int" => "java/lang/Integer",
             "long" => "java/lang/Long",
-            "char" => "java/lang/Char",
+            "char" => "java/lang/Character",
             "float" => "java/lang/Float",
             "double" => "java/lang/Double",
             "boolean" => "java/lang/Boolean",
@@ -43,4 +43,21 @@ pub fn get_primitive_class(thread: &mut Thread) {
     thread
         .operand_stack
         .push(Value::Object(Some(Class::obj(*class))));
+}
+
+pub fn init_class_name(thread: &mut Thread) {
+    let class_class_obj = match thread.pop() {
+        Value::Object(Some(obj)) => obj,
+        _ => panic!(),
+    };
+    let mut ma = method_area();
+    let class_class = ma.resolve_class("java/lang/Class");
+    let name_field = ma.resolve_field(class_class, "name");
+
+    let class = ma.class_objs[&class_class_obj];
+    let name = ma.classes[class].name.clone();
+    drop(ma);
+    let str_obj = Value::Object(Some(thread.create_string(&name)));
+    heap().objects[class_class_obj].fields.insert(name_field, str_obj);
+    thread.operand_stack.push(str_obj);
 }

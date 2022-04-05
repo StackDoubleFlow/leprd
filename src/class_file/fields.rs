@@ -9,7 +9,7 @@ pub mod acc {
     pub const FINAL: u16 = 0x0010;
     pub const VOLATILE: u16 = 0x0040;
     pub const TRANSIENT: u16 = 0x0080;
-    pub const SYNTHETIC: u16 = 0x100;
+    pub const SYNTHETIC: u16 = 0x1000;
     pub const ENUM: u16 = 0x4000;
 }
 

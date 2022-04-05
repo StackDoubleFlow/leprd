@@ -136,7 +136,7 @@ impl Class {
                 let class_id = Class::class_reference(id, class_idx);
 
                 let mut ma = method_area();
-                let method = ma.resolve_method(class_id, &name, &descriptor);
+                let method = ma.resolve_method(class_id, &name, &MethodDescriptor::read(&descriptor));
                 let self_class = &mut ma.classes[id];
                 *self_class.references.get_mut(&cp_idx).unwrap() = Reference::Method(method);
                 method
@@ -155,6 +155,7 @@ impl Class {
         let class_class = ma.resolve_class("java/lang/Class");
         drop(ma);
         let obj = Object::new(class_class);
+        method_area().class_objs.insert(obj, id);
         // TODO: Initialize fields such as classLoader
         obj
     }

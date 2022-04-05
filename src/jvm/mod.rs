@@ -3,6 +3,7 @@ mod natives;
 
 use crate::class_file::attributes::CodeAttribute;
 use crate::class_file::descriptors::{BaseType, FieldType};
+use crate::class_file::methods;
 use crate::class_loader::{method_area, ClassId, MethodId};
 use crate::heap::{heap, Array, Object, ObjectId};
 use crate::value::Value;
@@ -58,14 +59,14 @@ impl Thread {
         method_area().methods[self.method].defining_class
     }
 
-    fn call_method(&mut self, method_id: MethodId, is_static: bool) {
+    fn call_method(&mut self, method_id: MethodId, is_static: bool, interface: bool) {
         let ma = method_area();
         let method = &ma.methods[method_id];
         println!(
             "Calling method: {}.{}",
             ma.classes[method.defining_class].name, method.name
         );
-        if method.code.is_none() {
+        if method.access_flags & methods::acc::NATIVE != 0 {
             let class_name = ma.classes[method.defining_class].name.clone();
             let method_name = method.name.clone();
             drop(ma);
@@ -91,6 +92,21 @@ impl Thread {
         }
         self.operand_stack
             .truncate(self.operand_stack.len() - num_params);
+
+
+        let method = if interface {
+            let class = match locals[0].unwrap() {
+                Value::Object(Some(obj)) => heap().objects[obj].class,
+                Value::Object(None) => panic!("NullPointerException"),
+                _ => unreachable!(),
+            };
+            let method_name = method.name.clone();
+            let descriptor = &method.descriptor;
+            let method = ma.resolve_method(class, &method_name, descriptor);
+            &ma.methods[method]
+        } else {
+            method
+        };
 
         let stack_frame = StackFrame {
             method: self.method,
@@ -132,7 +148,7 @@ impl Thread {
                 .find(|&mid| ma.methods[mid].name == "<clinit>")
             {
                 drop(ma);
-                self.call_method(method, true);
+                self.call_method(method, true, false);
             }
         }
     }

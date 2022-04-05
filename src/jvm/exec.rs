@@ -11,13 +11,19 @@ macro_rules! binary_op {
     ($self:ident, $op:tt) => {{
         let rhs = $self.pop();
         let lhs = $self.pop();
-        dbg!(lhs, rhs);
         $self.operand_stack.push(lhs $op rhs);
     }};
     ($self:ident, ($lhs:ident, $rhs:ident) => $expr:expr) => {{
         let $rhs = $self.pop();
         let $lhs = $self.pop();
         $self.operand_stack.push($expr);
+    }};
+}
+
+macro_rules! unary_op {
+    ($self:ident, $op:tt) => {{
+        let input = $self.pop();
+        $self.operand_stack.push($op input);
     }};
 }
 
@@ -258,6 +264,10 @@ impl Thread {
                     let arr = &mut heap().arrays[arr];
                     arr.contents[idx as usize] = val.store_ty(&arr.ty);
                 }
+                // pop
+                87 => {
+                    let _ = self.operand_stack.pop();
+                }
                 // dup
                 89 => {
                     let val = *self.operand_stack.last().unwrap();
@@ -275,6 +285,8 @@ impl Thread {
                 105 => binary_op!(self, *),
                 // irem
                 112 => binary_op!(self, %),
+                // ineg
+                116 => unary_op!(self, -),
                 // ishl
                 120 => binary_op!(self, <<),
                 // lshl
@@ -289,10 +301,12 @@ impl Thread {
                 128 => binary_op!(self, |),
                 // land
                 127 => binary_op!(self, &),
+                // ixor
+                130 => binary_op!(self, ^),
                 // iinc
                 132 => {
-                    let c = self.read_ins() as i8 as i32;
                     let idx = self.read_ins() as usize;
+                    let c = self.read_ins() as i8 as i32;
                     match &mut self.locals[idx] {
                         Some(Value::Int(val)) => *val += c,
                         _ => unreachable!(),
@@ -429,11 +443,6 @@ impl Thread {
                         Value::Object(None) => panic!("NullPointerException"),
                         _ => unreachable!(),
                     };
-                    {
-                        let ma = method_area();
-                        dbg!(&ma.classes[ma.fields[field].defining_class].name);
-                    }
-                    dbg!(&method_area().classes[heap().objects[obj].class].name);
                     self.operand_stack
                         .push(heap().objects[obj].fields[&field].extend_32());
                 }
@@ -455,14 +464,14 @@ impl Thread {
                     let idx = self.read_u16();
                     let class_id = self.class_id();
                     let method = Class::method_reference(class_id, idx);
-                    self.call_method(method, false);
+                    self.call_method(method, false, false);
                 }
                 // invokespecial
                 183 => {
                     let idx = self.read_u16();
                     let class_id = self.class_id();
                     let method = Class::method_reference(class_id, idx);
-                    self.call_method(method, false);
+                    self.call_method(method, false, false);
                 }
                 // invokestatic
                 184 => {
@@ -471,7 +480,16 @@ impl Thread {
                     let method = Class::method_reference(class_id, idx);
                     let defining_class = method_area().methods[method].defining_class;
                     self.ensure_initialized(defining_class);
-                    self.call_method(method, true);
+                    self.call_method(method, true, false);
+                }
+                // invokeinterface
+                185 => {
+                    let idx = self.read_u16();
+                    let class_id = self.class_id();
+                    let method = Class::method_reference(class_id, idx);
+                    let defining_class = method_area().methods[method].defining_class;
+                    self.ensure_initialized(defining_class);
+                    self.call_method(method, false, true);
                 }
                 // new
                 187 => {

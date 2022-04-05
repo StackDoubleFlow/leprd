@@ -3,14 +3,21 @@ mod class;
 mod float;
 mod object;
 mod string;
+mod system;
 
 use super::Thread;
 
 pub fn run_native(thread: &mut Thread, class: String, method: String) {
     match (class.as_str(), method.as_str()) {
+        ("java/lang/System", "registerNatives") => println!("stub: native System.registerNatives"),
+        ("java/lang/Class", "registerNatives") => println!("stub: native Class.registerNatives"),
+
+        ("java/lang/System", "arraycopy") => system::arraycopy(thread),
         ("java/lang/Object", "getClass") => object::get_class(thread),
+        ("java/lang/Object", "hashCode") => object::hash_code(thread),
         ("java/lang/Class", "desiredAssertionStatus0") => class::desired_assertion_status(thread),
         ("java/lang/Class", "getPrimitiveClass") => class::get_primitive_class(thread),
+        ("java/lang/Class", "initClassName") => class::init_class_name(thread),
         ("java/lang/StringUTF16", "isBigEndian") => string::is_big_endian(thread),
         ("java/lang/Float", "intBitsToFloat") => float::int_bits_to_float(thread),
         ("java/lang/Float", "floatToRawIntBits") => float::float_to_int_bits(thread),
@@ -23,6 +30,6 @@ pub fn run_native(thread: &mut Thread, class: String, method: String) {
             cds::get_random_seed_for_dumping(thread)
         }
         ("jdk/internal/misc/CDS", "initializeFromArchive") => cds::intialize_from_archive(thread),
-        _ => println!("Unimplemented native: {}.{}", &class, &method),
+        _ => unimplemented!("native: {}.{}", &class, &method),
     }
 }

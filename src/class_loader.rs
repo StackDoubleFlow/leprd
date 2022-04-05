@@ -2,6 +2,7 @@ use crate::class::{Class, Field, Method, Reference};
 use crate::class_file::constant_pool::CPInfo;
 use crate::class_file::descriptors::{FieldDescriptor, MethodDescriptor};
 use crate::class_file::{fields, ClassFile};
+use crate::heap::ObjectId;
 use crate::value::Value;
 use crate::CONFIG;
 use deku::DekuContainerRead;
@@ -33,6 +34,7 @@ pub enum ClassLoader {
 pub struct MethodArea {
     pub classes: Arena<Class>,
     pub class_map: HashMap<String, ClassId>,
+    pub class_objs: HashMap<ObjectId, ClassId>,
     pub methods: Arena<Method>,
     pub fields: Arena<Field>,
 }
@@ -46,10 +48,9 @@ impl MethodArea {
         }
     }
 
-    pub fn resolve_method(&self, class: ClassId, name: &str, descriptor: &str) -> MethodId {
+    pub fn resolve_method(&self, class: ClassId, name: &str, descriptor: &MethodDescriptor) -> MethodId {
         // TODO: Recursive method lookup
         // 5.4.3.3. Method Resolution
-        let descriptor = MethodDescriptor::read(descriptor);
         let class = &self.classes[class];
         class
             .methods
@@ -57,7 +58,7 @@ impl MethodArea {
             .copied()
             .find(|&id| {
                 let method = &self.methods[id];
-                method.name == name && method.descriptor == descriptor
+                method.name == name && method.descriptor == *descriptor
             })
             .expect("NoSuchMethodError")
     }
