@@ -167,74 +167,33 @@ impl Thread {
                 // istore, lstore, fstore, dstore, astore
                 54..=58 => {
                     let idx = self.read_ins() as usize;
-                    self.locals
-                        .insert(idx, Some(self.operand_stack.pop().unwrap()))
+                    self.locals[idx] = Some(self.operand_stack.pop().unwrap());
                 }
                 // istore_<n>
-                59 => self
-                    .locals
-                    .insert(0, Some(self.operand_stack.pop().unwrap())),
-                60 => self
-                    .locals
-                    .insert(1, Some(self.operand_stack.pop().unwrap())),
-                61 => self
-                    .locals
-                    .insert(2, Some(self.operand_stack.pop().unwrap())),
-                62 => self
-                    .locals
-                    .insert(3, Some(self.operand_stack.pop().unwrap())),
+                59 => self.locals[0] = Some(self.operand_stack.pop().unwrap()),
+                60 => self.locals[1] = Some(self.operand_stack.pop().unwrap()),
+                61 => self.locals[2] = Some(self.operand_stack.pop().unwrap()),
+                62 => self.locals[3] = Some(self.operand_stack.pop().unwrap()),
                 // lstore_<n>
-                63 => self
-                    .locals
-                    .insert(0, Some(self.operand_stack.pop().unwrap())),
-                64 => self
-                    .locals
-                    .insert(1, Some(self.operand_stack.pop().unwrap())),
-                65 => self
-                    .locals
-                    .insert(2, Some(self.operand_stack.pop().unwrap())),
-                66 => self
-                    .locals
-                    .insert(3, Some(self.operand_stack.pop().unwrap())),
+                63 => self.locals[0] = Some(self.operand_stack.pop().unwrap()),
+                64 => self.locals[1] = Some(self.operand_stack.pop().unwrap()),
+                65 => self.locals[2] = Some(self.operand_stack.pop().unwrap()),
+                66 => self.locals[3] = Some(self.operand_stack.pop().unwrap()),
                 // fstore_<n>
-                67 => self
-                    .locals
-                    .insert(0, Some(self.operand_stack.pop().unwrap())),
-                68 => self
-                    .locals
-                    .insert(1, Some(self.operand_stack.pop().unwrap())),
-                69 => self
-                    .locals
-                    .insert(2, Some(self.operand_stack.pop().unwrap())),
-                70 => self
-                    .locals
-                    .insert(3, Some(self.operand_stack.pop().unwrap())),
+                67 => self.locals[0] = Some(self.operand_stack.pop().unwrap()),
+                68 => self.locals[1] = Some(self.operand_stack.pop().unwrap()),
+                69 => self.locals[2] = Some(self.operand_stack.pop().unwrap()),
+                70 => self.locals[3] = Some(self.operand_stack.pop().unwrap()),
                 // dstore_<n>
-                71 => self
-                    .locals
-                    .insert(0, Some(self.operand_stack.pop().unwrap())),
-                72 => self
-                    .locals
-                    .insert(1, Some(self.operand_stack.pop().unwrap())),
-                73 => self
-                    .locals
-                    .insert(2, Some(self.operand_stack.pop().unwrap())),
-                74 => self
-                    .locals
-                    .insert(3, Some(self.operand_stack.pop().unwrap())),
+                71 => self.locals[0] = Some(self.operand_stack.pop().unwrap()),
+                72 => self.locals[1] = Some(self.operand_stack.pop().unwrap()),
+                73 => self.locals[2] = Some(self.operand_stack.pop().unwrap()),
+                74 => self.locals[3] = Some(self.operand_stack.pop().unwrap()),
                 // astore_<n>
-                75 => self
-                    .locals
-                    .insert(0, Some(self.operand_stack.pop().unwrap())),
-                76 => self
-                    .locals
-                    .insert(1, Some(self.operand_stack.pop().unwrap())),
-                77 => self
-                    .locals
-                    .insert(2, Some(self.operand_stack.pop().unwrap())),
-                78 => self
-                    .locals
-                    .insert(3, Some(self.operand_stack.pop().unwrap())),
+                75 => self.locals[0] = Some(self.operand_stack.pop().unwrap()),
+                76 => self.locals[1] = Some(self.operand_stack.pop().unwrap()),
+                77 => self.locals[2] = Some(self.operand_stack.pop().unwrap()),
+                78 => self.locals[3] = Some(self.operand_stack.pop().unwrap()),
                 // iastore, lastore, fastore, dastore, aastore
                 79..=83 => {
                     let val = self.pop();
@@ -273,16 +232,25 @@ impl Thread {
                     let val = *self.operand_stack.last().unwrap();
                     self.operand_stack.push(val);
                 }
+                // dup_x1
+                90 => {
+                    let val = *self.operand_stack.last().unwrap();
+                    self.operand_stack.insert(self.operand_stack.len() - 2, val);
+                }
                 // iadd
                 96 => binary_op!(self, +),
                 // ladd
                 97 => binary_op!(self, +),
+                // fadd
+                98 => binary_op!(self, +),
                 // isub
                 100 => binary_op!(self, -),
                 // imul
                 104 => binary_op!(self, *),
                 // lmul
                 105 => binary_op!(self, *),
+                // fdiv
+                110 => binary_op!(self, /),
                 // irem
                 112 => binary_op!(self, %),
                 // ineg
@@ -295,6 +263,10 @@ impl Thread {
                 122 => binary_op!(self, >>),
                 // lshr
                 123 => binary_op!(self, >>),
+                // iushr
+                124 => binary_op!(self, (lhs, rhs) => lhs.ushr(rhs)),
+                // lushr
+                125 => binary_op!(self, (lhs, rhs) => lhs.ushr(rhs)),
                 // iand
                 126 => binary_op!(self, &),
                 // ior
@@ -312,10 +284,14 @@ impl Thread {
                         _ => unreachable!(),
                     }
                 }
+                // i2f
+                134 => cast!(self, Int, Float, val -> val as f32),
                 // i2l
                 133 => cast!(self, Int, Long, val -> val as i64),
                 // l2i
                 136 => cast!(self, Long, Int, val -> val as i32),
+                // f2i
+                139 => cast!(self, Float, Int, val -> val as i32),
                 // i2c
                 146 => cast!(self, Int, Int, val -> val % 0xF),
                 // lcmp
@@ -332,6 +308,28 @@ impl Thread {
                         Ordering::Greater => 1,
                         Ordering::Equal => 0,
                         Ordering::Less => -1,
+                    };
+                    self.operand_stack.push(Value::Int(res));
+                }
+                // fcmpg, fcmpl
+                149..=150 => {
+                    let value2 = match self.pop() {
+                        Value::Float(val) => val,
+                        _ => unreachable!(),
+                    };
+                    let value1 = match self.pop() {
+                        Value::Float(val) => val,
+                        _ => unreachable!(),
+                    };
+                    let res = match value1.partial_cmp(&value2) {
+                        Some(Ordering::Greater) => 1,
+                        Some(Ordering::Equal) => 0,
+                        Some(Ordering::Less) => -1,
+                        _ => match opcode {
+                            149 => -1,
+                            150 => 1,
+                            _ => unreachable!(),
+                        }
                     };
                     self.operand_stack.push(Value::Int(res));
                 }
