@@ -59,9 +59,10 @@ impl Thread {
         method_area().methods[self.method].defining_class
     }
 
-    fn call_method(&mut self, method_id: MethodId, is_static: bool, interface: bool) {
+    fn call_method(&mut self, method_id: MethodId) {
         let ma = method_area();
         let method = &ma.methods[method_id];
+        let is_static = method.access_flags & methods::acc::STATIC != 0;
         println!(
             "Calling method: {}.{}",
             ma.classes[method.defining_class].name, method.name
@@ -92,21 +93,6 @@ impl Thread {
         }
         self.operand_stack
             .truncate(self.operand_stack.len() - num_params);
-
-
-        let method = if interface {
-            let class = match locals[0].unwrap() {
-                Value::Object(Some(obj)) => heap().objects[obj].class,
-                Value::Object(None) => panic!("NullPointerException"),
-                _ => unreachable!(),
-            };
-            let method_name = method.name.clone();
-            let descriptor = &method.descriptor;
-            let method = ma.resolve_method(class, &method_name, descriptor);
-            &ma.methods[method]
-        } else {
-            method
-        };
 
         let stack_frame = StackFrame {
             method: self.method,
@@ -148,7 +134,7 @@ impl Thread {
                 .find(|&mid| ma.methods[mid].name == "<clinit>")
             {
                 drop(ma);
-                self.call_method(method, true, false);
+                self.call_method(method);
             }
         }
     }
@@ -202,5 +188,37 @@ impl Thread {
             _ => unreachable!(),
         };
         heap().arrays[arr].contents[idx]
+    }
+
+    /// For method selection in invokeinterface and invokevirtual instructions
+    fn select_method(&mut self, method_id: MethodId) -> MethodId {
+        let ma = method_area();
+        let method = &ma.methods[method_id];
+        let num_params = method.descriptor.0.len();
+
+        let stack_obj_idx = self.operand_stack.len() - num_params - 1;
+        let obj = match self.operand_stack[stack_obj_idx] {
+            Value::Object(Some(obj)) => obj,
+            Value::Object(None) => panic!("NullPointerException"),
+            _ => unreachable!()
+        };
+        let obj_class = heap().objects[obj].class;
+
+        let mut cur_class = obj_class;
+        loop {
+            let c = &ma.classes[cur_class];
+            let m = c.methods.iter().find(|&m| {
+                let m = &ma.methods[*m];
+                m.name == method.name && m.descriptor == method.descriptor
+            });
+            if let Some(&m) = m {
+                break m;
+            }
+            match c.super_class {
+                Some(s) => cur_class = s,
+                // Could not find an overriding method
+                None => break method_id,
+            }
+        }
     }
 }

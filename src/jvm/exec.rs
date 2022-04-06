@@ -464,14 +464,15 @@ impl Thread {
                     let idx = self.read_u16();
                     let class_id = self.class_id();
                     let method = Class::method_reference(class_id, idx);
-                    self.call_method(method, false, false);
+                    let method = self.select_method(method);
+                    self.call_method(method);
                 }
                 // invokespecial
                 183 => {
                     let idx = self.read_u16();
                     let class_id = self.class_id();
                     let method = Class::method_reference(class_id, idx);
-                    self.call_method(method, false, false);
+                    self.call_method(method);
                 }
                 // invokestatic
                 184 => {
@@ -480,16 +481,17 @@ impl Thread {
                     let method = Class::method_reference(class_id, idx);
                     let defining_class = method_area().methods[method].defining_class;
                     self.ensure_initialized(defining_class);
-                    self.call_method(method, true, false);
+                    self.call_method(method);
                 }
                 // invokeinterface
                 185 => {
                     let idx = self.read_u16();
                     let class_id = self.class_id();
                     let method = Class::method_reference(class_id, idx);
+                    let method = self.select_method(method);
                     let defining_class = method_area().methods[method].defining_class;
                     self.ensure_initialized(defining_class);
-                    self.call_method(method, false, true);
+                    self.call_method(method);
                 }
                 // new
                 187 => {
