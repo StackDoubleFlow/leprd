@@ -4,6 +4,7 @@ mod float;
 mod object;
 mod string;
 mod system;
+mod runtime;
 
 use super::Thread;
 
@@ -13,6 +14,7 @@ pub fn run_native(thread: &mut Thread, class: String, method: String) {
         ("java/lang/Class", "registerNatives") => println!("stub: native Class.registerNatives"),
 
         ("java/lang/System", "arraycopy") => system::arraycopy(thread),
+        ("java/lang/Runtime", "availableProcessors") => runtime::available_processors(thread),
         ("java/lang/Object", "getClass") => object::get_class(thread),
         ("java/lang/Object", "hashCode") => object::hash_code(thread),
         ("java/lang/Class", "desiredAssertionStatus0") => class::desired_assertion_status(thread),

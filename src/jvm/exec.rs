@@ -249,6 +249,8 @@ impl Thread {
                 104 => binary_op!(self, *),
                 // lmul
                 105 => binary_op!(self, *),
+                // fmul
+                106 => binary_op!(self, *),
                 // fdiv
                 110 => binary_op!(self, /),
                 // irem
