@@ -492,6 +492,10 @@ impl Thread {
                     let defining_class = method_area().methods[method].defining_class;
                     self.ensure_initialized(defining_class);
                     self.call_method(method);
+
+                    // here for historical reasons
+                    let _count = self.read_ins();
+                    let _z = self.read_ins();
                 }
                 // new
                 187 => {
@@ -603,7 +607,7 @@ impl Thread {
                     let is_some = match self.pop() {
                         Value::Object(val) => val.is_some(),
                         Value::Array(val) => val.is_some(),
-                        _ => unreachable!(),
+                        a => unreachable!("{:?}", a),
                     };
                     self.br_if(
                         cur_pc,
