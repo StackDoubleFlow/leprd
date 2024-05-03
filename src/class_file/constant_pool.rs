@@ -11,10 +11,10 @@ pub struct ConstantPool {
 
 impl ConstantPool {
     fn read_table(
-        mut rest: &BitSlice<Msb0, u8>,
+        mut rest: &BitSlice<u8, Msb0>,
         count: u16,
         endian: deku::ctx::Endian,
-    ) -> Result<(&BitSlice<Msb0, u8>, Vec<CPInfo>), DekuError> {
+    ) -> Result<(&BitSlice<u8, Msb0>, Vec<CPInfo>), DekuError> {
         let mut table = Vec::new();
         while table.len() < count as usize - 1 {
             let (new_rest, cp_info) = CPInfo::read(rest, endian)?;

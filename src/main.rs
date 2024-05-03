@@ -1,5 +1,4 @@
-#![feature(once_cell)]
-#![feature(slice_group_by)]
+#![feature(lazy_cell)]
 
 use crate::class_file::descriptors::MethodDescriptor;
 use crate::class_loader::method_area;

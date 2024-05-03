@@ -4,10 +4,10 @@ use crate::class_loader::{method_area, ClassId, FieldId};
 use crate::value::Value;
 use id_arena::{Arena, Id};
 use std::collections::HashMap;
-use std::lazy::SyncLazy;
+use std::sync::LazyLock;
 use std::sync::{Mutex, MutexGuard};
 
-static HEAP: SyncLazy<Mutex<Heap>> = SyncLazy::new(Default::default);
+static HEAP: LazyLock<Mutex<Heap>> = LazyLock::new(Default::default);
 
 /// Retrieve the heap by locking the mutex
 pub fn heap() -> MutexGuard<'static, Heap> {

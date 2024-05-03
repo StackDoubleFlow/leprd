@@ -8,12 +8,12 @@ use crate::CONFIG;
 use deku::DekuContainerRead;
 use id_arena::{Arena, Id};
 use std::collections::HashMap;
-use std::lazy::SyncLazy;
+use std::sync::LazyLock;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::{fs, str};
 
-static METHOD_AREA: SyncLazy<Mutex<MethodArea>> = SyncLazy::new(Default::default);
+static METHOD_AREA: LazyLock<Mutex<MethodArea>> = LazyLock::new(Default::default);
 
 /// Retrieve the method area by locking the mutex
 pub fn method_area() -> MutexGuard<'static, MethodArea> {

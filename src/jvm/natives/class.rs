@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::lazy::SyncLazy;
+use std::sync::LazyLock;
 use std::sync::Mutex;
 
 use crate::class::Class;
@@ -14,8 +14,8 @@ pub fn desired_assertion_status(thread: &mut Thread) {
     thread.operand_stack.push(Value::Int(0));
 }
 
-static PRIMITIVE_CLASSES: SyncLazy<Mutex<HashMap<String, ClassId>>> =
-    SyncLazy::new(Default::default);
+static PRIMITIVE_CLASSES: LazyLock<Mutex<HashMap<String, ClassId>>> =
+    LazyLock::new(Default::default);
 
 pub fn get_primitive_class(thread: &mut Thread) {
     let str_obj = match thread.pop() {
