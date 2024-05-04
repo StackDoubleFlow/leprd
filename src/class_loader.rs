@@ -69,33 +69,51 @@ impl MethodArea {
         name: &str,
         descriptor: &MethodDescriptor,
     ) -> MethodId {
-        // TODO: Recursive method lookup
         // 5.4.3.3. Method Resolution
         let class = &self.classes[class];
-        class
+        let method = class
             .methods
             .iter()
             .copied()
             .find(|&id| {
                 let method = &self.methods[id];
                 method.name == name && method.descriptor == *descriptor
-            })
-            .expect("NoSuchMethodError")
+            });
+
+        match method {
+            Some(method) => method,
+            None => {
+                if let Some(super_class) = class.super_class {
+                    self.resolve_method(super_class, name, descriptor)
+                } else {
+                    panic!("NoSuchMethodError");
+                }
+            }
+        }
     }
 
     pub fn resolve_field(&self, class: ClassId, name: &str) -> FieldId {
-        // TODO: Recursive field lookup
         // 5.4.3.2. Field Resolution
         let class = &self.classes[class];
-        class
+        let field = class
             .fields
             .iter()
             .copied()
             .find(|&id| {
                 let field = &self.fields[id];
                 field.name == name
-            })
-            .expect("NoSuchFieldError")
+            });
+        
+        match field {
+            Some(field) => field,
+            None => {
+                if let Some(super_class) = class.super_class {
+                    self.resolve_field(super_class, name)
+                } else {
+                    panic!("NoSuchFieldError");
+                }
+            }
+        }
     }
 }
 
@@ -112,7 +130,7 @@ pub fn load_class_bootstrap(ma: &mut MethodArea, name: &str) -> ClassId {
             path.push(name);
             path.set_extension("class");
             if path.exists() {
-                dbg!(&path);
+                println!("Loading class at {}", path.display());
                 Some(fs::read(path).unwrap())
             } else {
                 None
