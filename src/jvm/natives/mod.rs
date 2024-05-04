@@ -2,9 +2,9 @@ mod cds;
 mod class;
 mod float;
 mod object;
+mod runtime;
 mod string;
 mod system;
-mod runtime;
 
 use super::Thread;
 
@@ -12,6 +12,9 @@ pub fn run_native(thread: &mut Thread, class: String, method: String) {
     match (class.as_str(), method.as_str()) {
         ("java/lang/System", "registerNatives") => println!("stub: native System.registerNatives"),
         ("java/lang/Class", "registerNatives") => println!("stub: native Class.registerNatives"),
+        ("jdk/internal/misc/Unsafe", "registerNatives") => {
+            println!("stub: native Unsafe.registerNatives")
+        }
 
         ("java/lang/System", "arraycopy") => system::arraycopy(thread),
         ("java/lang/Runtime", "availableProcessors") => runtime::available_processors(thread),
@@ -32,6 +35,9 @@ pub fn run_native(thread: &mut Thread, class: String, method: String) {
             cds::get_random_seed_for_dumping(thread)
         }
         ("jdk/internal/misc/CDS", "initializeFromArchive") => cds::intialize_from_archive(thread),
-        _ => unimplemented!("native: {}.{}", &class, &method),
+        _ => {
+            thread.print_stacktrace();
+            unimplemented!("native: {}.{}", &class, &method);
+        }
     }
 }

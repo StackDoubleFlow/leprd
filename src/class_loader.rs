@@ -8,8 +8,8 @@ use crate::CONFIG;
 use deku::DekuContainerRead;
 use id_arena::{Arena, Id};
 use std::collections::HashMap;
-use std::sync::LazyLock;
 use std::path::PathBuf;
+use std::sync::LazyLock;
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::{fs, str};
 
@@ -40,7 +40,22 @@ pub struct MethodArea {
 }
 
 impl MethodArea {
+    fn resolve_arr_class(&mut self, desc: FieldDescriptor) -> Id<Class> {
+        let name = format!("{}", desc.0);
+
+        let id = self.class_map.get(&name).cloned();
+        match id {
+            Some(id) => id,
+            None => load_arr_class_bootstrap(self, &name),
+        }
+    }
+
     pub fn resolve_class(&mut self, name: &str) -> ClassId {
+        if name.starts_with('[') {
+            let desc = FieldDescriptor::read(name);
+            return self.resolve_arr_class(desc);
+        }
+
         let id = self.class_map.get(name).cloned();
         match id {
             Some(id) => id,
@@ -48,7 +63,12 @@ impl MethodArea {
         }
     }
 
-    pub fn resolve_method(&self, class: ClassId, name: &str, descriptor: &MethodDescriptor) -> MethodId {
+    pub fn resolve_method(
+        &self,
+        class: ClassId,
+        name: &str,
+        descriptor: &MethodDescriptor,
+    ) -> MethodId {
         // TODO: Recursive method lookup
         // 5.4.3.3. Method Resolution
         let class = &self.classes[class];
@@ -204,6 +224,31 @@ pub fn load_class_bootstrap(ma: &mut MethodArea, name: &str) -> ClassId {
             panic!("ClassCircularityError");
         }
     }
+
+    id
+}
+
+pub fn load_arr_class_bootstrap(ma: &mut MethodArea, name: &str) -> ClassId {
+    let name = name.to_string();
+    let super_class = Some(ma.resolve_class("java/lang/Object"));
+    let class = Class {
+        initialized: false,
+        defining_loader: ClassLoader::Bootstrap,
+        references: HashMap::new(),
+        class_obj: None,
+        name: name.clone(),
+        super_class,
+        interfaces: vec![],
+        methods: vec![], // FIXME: this should have clone
+        fields: vec![],  // FIXME: this should have length
+        access_flags: Default::default(),
+        constant_pool: Default::default(),
+    };
+
+    let id = ma.classes.alloc(class);
+    ma.class_map.insert(name.clone(), id);
+
+    println!("Created array class: {}", name);
 
     id
 }

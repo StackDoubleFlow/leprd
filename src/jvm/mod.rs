@@ -200,7 +200,7 @@ impl Thread {
         let obj = match self.operand_stack[stack_obj_idx] {
             Value::Object(Some(obj)) => obj,
             Value::Object(None) => panic!("NullPointerException"),
-            _ => unreachable!()
+            _ => unreachable!(),
         };
         let obj_class = heap().objects[obj].class;
 
@@ -219,6 +219,16 @@ impl Thread {
                 // Could not find an overriding method
                 None => break method_id,
             }
+        }
+    }
+
+    fn print_stacktrace(&self) {
+        let ma = method_area();
+        println!("stacktrace:");
+        for (idx, frame) in self.stack_frames.iter().enumerate() {
+            let method = &ma.methods[frame.method];
+            let class = &ma.classes[method.defining_class];
+            println!("  {}: {}::{}", idx, class.name, method.name);
         }
     }
 }

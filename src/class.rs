@@ -136,7 +136,8 @@ impl Class {
                 let class_id = Class::class_reference(id, class_idx);
 
                 let mut ma = method_area();
-                let method = ma.resolve_method(class_id, &name, &MethodDescriptor::read(&descriptor));
+                let method =
+                    ma.resolve_method(class_id, &name, &MethodDescriptor::read(&descriptor));
                 let self_class = &mut ma.classes[id];
                 *self_class.references.get_mut(&cp_idx).unwrap() = Reference::Method(method);
                 method

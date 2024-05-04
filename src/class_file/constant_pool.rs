@@ -1,7 +1,7 @@
 use deku::bitvec::{BitSlice, Msb0};
 use deku::prelude::*;
 
-#[derive(DekuRead, Debug)]
+#[derive(DekuRead, Debug, Default)]
 #[deku(endian = "endian", ctx = "endian: deku::ctx::Endian")]
 pub struct ConstantPool {
     pub count: u16,

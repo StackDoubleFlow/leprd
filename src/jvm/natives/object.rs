@@ -20,5 +20,7 @@ pub fn hash_code(thread: &mut Thread) {
         _ => panic!(),
     };
     // lmaoxd
+    // FIXME: According to the spec, this is technically valid,
+    // but will kill the performance of hashtables.
     thread.operand_stack.push(Value::Int(69));
 }

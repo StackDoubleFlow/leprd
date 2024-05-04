@@ -94,6 +94,16 @@ impl FieldType {
     }
 }
 
+impl std::fmt::Display for FieldType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FieldType::BaseType(base_type) => write!(f, "{}", base_type),
+            FieldType::ArrayType(arr_type) => write!(f, "{}[]", arr_type.0 .0),
+            FieldType::ObjectType(obj_type) => write!(f, "{}", obj_type.class_name),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub enum BaseType {
     /// byte
@@ -114,13 +124,32 @@ pub enum BaseType {
     Z,
 }
 
+impl std::fmt::Display for BaseType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                BaseType::B => "byte",
+                BaseType::C => "char",
+                BaseType::D => "double",
+                BaseType::F => "float",
+                BaseType::I => "int",
+                BaseType::J => "long",
+                BaseType::S => "short",
+                BaseType::Z => "boolean",
+            }
+        )
+    }
+}
+
 #[derive(Debug, PartialEq)]
 pub struct ObjectType {
     pub class_name: String,
 }
 
 #[derive(Debug, PartialEq)]
-pub struct ArrayType(Box<ComponentType>);
+pub struct ArrayType(pub Box<ComponentType>);
 
 #[derive(Debug, PartialEq)]
-pub struct ComponentType(FieldType);
+pub struct ComponentType(pub FieldType);

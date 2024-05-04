@@ -331,7 +331,7 @@ impl Thread {
                             149 => -1,
                             150 => 1,
                             _ => unreachable!(),
-                        }
+                        },
                     };
                     self.operand_stack.push(Value::Int(res));
                 }

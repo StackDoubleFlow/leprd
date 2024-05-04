@@ -120,7 +120,9 @@ impl_val_op_unary!(std::ops::Neg => fn neg: Int, Long, Float, Double);
 impl Value {
     pub fn ushr(self, rhs: Value) -> Value {
         match (self, rhs) {
-            (Value::Int(lhs), Value::Int(rhs)) => Value::Int((lhs as u32).overflowing_shr(rhs as u32).0 as i32),
+            (Value::Int(lhs), Value::Int(rhs)) => {
+                Value::Int((lhs as u32).overflowing_shr(rhs as u32).0 as i32)
+            }
             (Value::Long(lhs), Value::Int(rhs)) => Value::Long((lhs as u64 >> rhs) as i64),
             _ => unreachable!(),
         }
