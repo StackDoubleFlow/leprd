@@ -8,18 +8,32 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 #[derive(Debug)]
+pub enum FieldBacking {
+    StaticValue(Value),
+    /// Stored in the object at the given offset
+    Instance(u32),
+}
+
+#[derive(Debug)]
 pub struct Field {
     pub name: String,
     pub defining_class: ClassId,
     pub access_flags: u16,
-    pub static_value: Option<Value>,
     pub descriptor: FieldDescriptor,
+    pub backing: FieldBacking,
 }
 
 impl Field {
     pub fn store_static(&mut self, val: Value) {
         let ty = &self.descriptor.0;
-        self.static_value = Some(val.store_ty(ty));
+        match &mut self.backing {
+            FieldBacking::StaticValue(static_value) => {
+                *static_value = val.store_ty(ty);
+            }
+            _ => {
+                panic!("tried to store value statically into non-static field");
+            }
+        }
     }
 }
 
@@ -81,6 +95,9 @@ pub struct Class {
     pub access_flags: u16,
     pub methods: Vec<MethodId>,
     pub fields: Vec<FieldId>,
+
+    pub size: u32,
+    pub alignment: u8,
 }
 
 impl Class {

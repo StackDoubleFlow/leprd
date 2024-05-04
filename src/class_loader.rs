@@ -1,8 +1,8 @@
-use crate::class::{Class, Field, Method, Reference};
+use crate::class::{Class, Field, FieldBacking, Method, Reference};
 use crate::class_file::constant_pool::CPInfo;
-use crate::class_file::descriptors::{FieldDescriptor, MethodDescriptor};
+use crate::class_file::descriptors::{BaseType, FieldDescriptor, FieldType, MethodDescriptor};
 use crate::class_file::{fields, ClassFile};
-use crate::heap::ObjectId;
+use crate::heap::{Object, ObjectId};
 use crate::value::Value;
 use crate::CONFIG;
 use deku::DekuContainerRead;
@@ -71,14 +71,10 @@ impl MethodArea {
     ) -> MethodId {
         // 5.4.3.3. Method Resolution
         let class = &self.classes[class];
-        let method = class
-            .methods
-            .iter()
-            .copied()
-            .find(|&id| {
-                let method = &self.methods[id];
-                method.name == name && method.descriptor == *descriptor
-            });
+        let method = class.methods.iter().copied().find(|&id| {
+            let method = &self.methods[id];
+            method.name == name && method.descriptor == *descriptor
+        });
 
         match method {
             Some(method) => method,
@@ -95,15 +91,11 @@ impl MethodArea {
     pub fn resolve_field(&self, class: ClassId, name: &str) -> FieldId {
         // 5.4.3.2. Field Resolution
         let class = &self.classes[class];
-        let field = class
-            .fields
-            .iter()
-            .copied()
-            .find(|&id| {
-                let field = &self.fields[id];
-                field.name == name
-            });
-        
+        let field = class.fields.iter().copied().find(|&id| {
+            let field = &self.fields[id];
+            field.name == name
+        });
+
         match field {
             Some(field) => field,
             None => {
@@ -114,6 +106,23 @@ impl MethodArea {
                 }
             }
         }
+    }
+}
+
+fn size_and_alignment_of<T>() -> (usize, usize) {
+    (std::mem::size_of::<T>(), std::mem::align_of::<T>())
+}
+
+fn size_and_alignment_of_field(field_desc: &FieldDescriptor) -> (usize, usize) {
+    match field_desc.0 {
+        FieldType::ArrayType(_) | FieldType::ObjectType(_) => size_and_alignment_of::<*const ()>(),
+        FieldType::BaseType(BaseType::B | BaseType::C) => size_and_alignment_of::<u8>(),
+        FieldType::BaseType(BaseType::D) => size_and_alignment_of::<f64>(),
+        FieldType::BaseType(BaseType::F) => size_and_alignment_of::<f32>(),
+        FieldType::BaseType(BaseType::I) => size_and_alignment_of::<u32>(),
+        FieldType::BaseType(BaseType::J) => size_and_alignment_of::<u64>(),
+        FieldType::BaseType(BaseType::S) => size_and_alignment_of::<u16>(),
+        FieldType::BaseType(BaseType::Z) => size_and_alignment_of::<bool>(),
     }
 }
 
@@ -144,7 +153,7 @@ pub fn load_class_bootstrap(ma: &mut MethodArea, name: &str) -> ClassId {
     assert!(class_file.magic == 0xCAFEBABE);
     assert!((45..62).contains(&class_file.major_version));
 
-    let super_class = if class_file.super_class > 0 {
+    let super_class_id = if class_file.super_class > 0 {
         let super_name = class_file.constant_pool.class_name(class_file.super_class);
         Some(ma.resolve_class(&super_name))
     } else {
@@ -152,6 +161,16 @@ pub fn load_class_bootstrap(ma: &mut MethodArea, name: &str) -> ClassId {
         None
     };
     let name = class_file.constant_pool.class_name(class_file.this_class);
+
+    let (base_size, base_alignment) = if let Some(super_class_id) = super_class_id {
+        let super_class = &ma.classes[super_class_id];
+        (super_class.size, super_class.alignment)
+    } else {
+        (
+            std::mem::size_of::<Object> as u32,
+            std::mem::align_of::<Object> as u8,
+        )
+    };
 
     let mut interfaces = Vec::new();
     for interface in class_file.interfaces {
@@ -183,24 +202,34 @@ pub fn load_class_bootstrap(ma: &mut MethodArea, name: &str) -> ClassId {
         methods.push(id);
     }
 
+    let mut size = base_size;
+    let mut alignment = base_alignment;
+
     let mut fields = Vec::new();
     for field in class_file.fields {
         let name = class_file.constant_pool.utf8(field.name_index);
         let descriptor = class_file.constant_pool.utf8(field.descriptor_index);
         let descriptor = FieldDescriptor::read(&descriptor);
 
-        let static_value = if field.access_flags & fields::acc::STATIC != 0 {
-            Some(Value::default_for_ty(&descriptor.0))
+        let is_static = field.access_flags & fields::acc::STATIC != 0;
+        let backing = if is_static {
+            FieldBacking::StaticValue(Value::default_for_ty(&descriptor.0))
         } else {
-            None
+            let (field_size, field_alignment) = size_and_alignment_of_field(&descriptor);
+            let padding = size % field_alignment as u32;
+            size += padding;
+            let offset = size;
+            size += field_size as u32;
+            alignment = alignment.max(field_alignment as u8);
+            FieldBacking::Instance(offset)
         };
 
         let id = ma.fields.alloc(Field {
             name,
             defining_class: class_id,
             access_flags: field.access_flags,
-            static_value,
             descriptor,
+            backing,
         });
         fields.push(id);
     }
@@ -224,12 +253,14 @@ pub fn load_class_bootstrap(ma: &mut MethodArea, name: &str) -> ClassId {
         references,
         class_obj: None,
         name: name.clone(),
-        super_class,
+        super_class: super_class_id,
         interfaces,
         methods,
         fields,
         access_flags: class_file.access_flags,
         constant_pool: class_file.constant_pool,
+        alignment,
+        size,
     };
 
     let id = ma.classes.alloc(class);
