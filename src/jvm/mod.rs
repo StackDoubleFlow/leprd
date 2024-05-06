@@ -52,8 +52,8 @@ impl Thread {
     }
 
     // fn pop_u16(&mut self) -> u16 {
-    //     (self.operand_stack.pop().unwrap() as u16) << 8 | self.operand_stack.pop().unwrap() as u16
-    // }
+    //     (self.operand_stack.pop().unwrap() as u16) << 8 | self.operand_stack.pop().unwrap() as
+    // u16 }
 
     fn class_id(&self) -> ClassId {
         method_area().methods[self.method].defining_class

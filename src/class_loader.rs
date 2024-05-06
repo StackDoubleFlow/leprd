@@ -9,8 +9,7 @@ use deku::DekuContainerRead;
 use id_arena::{Arena, Id};
 use std::collections::HashMap;
 use std::path::PathBuf;
-use std::sync::LazyLock;
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, LazyLock, Mutex, MutexGuard};
 use std::{fs, str};
 
 static METHOD_AREA: LazyLock<Mutex<MethodArea>> = LazyLock::new(Default::default);
@@ -279,19 +278,22 @@ pub fn load_class_bootstrap(ma: &mut MethodArea, name: &str) -> ClassId {
 
 pub fn load_arr_class_bootstrap(ma: &mut MethodArea, name: &str) -> ClassId {
     let name = name.to_string();
-    let super_class = Some(ma.resolve_class("java/lang/Object"));
+    let super_class_id = ma.resolve_class("java/lang/Object");
+    let super_class = &ma.classes[super_class_id];
     let class = Class {
         initialized: false,
         defining_loader: ClassLoader::Bootstrap,
         references: HashMap::new(),
         class_obj: None,
         name: name.clone(),
-        super_class,
+        super_class: Some(super_class_id),
         interfaces: vec![],
         methods: vec![], // FIXME: this should have clone
         fields: vec![],  // FIXME: this should have length
         access_flags: Default::default(),
         constant_pool: Default::default(),
+        size: super_class.size,
+        alignment: super_class.alignment,
     };
 
     let id = ma.classes.alloc(class);

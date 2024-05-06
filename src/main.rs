@@ -1,4 +1,4 @@
-#![feature(lazy_cell)]
+#![feature(lazy_cell, alloc_layout_extra)]
 
 use crate::class_file::descriptors::MethodDescriptor;
 use crate::class_loader::method_area;

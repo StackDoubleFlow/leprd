@@ -1,6 +1,7 @@
 use crate::class_file::attributes::CodeAttribute;
 use crate::class_file::descriptors::{FieldDescriptor, MethodDescriptor};
 use crate::class_file::ConstantPool;
+use crate::class_file::fields;
 use crate::class_loader::{method_area, ClassId, ClassLoader, FieldId, MethodId};
 use crate::heap::{heap, Object, ObjectId};
 use crate::value::Value;
@@ -24,6 +25,15 @@ pub struct Field {
 }
 
 impl Field {
+    pub fn load_static(&self) -> Value {
+        match &self.backing {
+            FieldBacking::StaticValue(static_value) => static_value.extend_32(),
+            _ => {
+                panic!("tried to store value statically into non-static field");
+            }
+        }
+    }
+
     pub fn store_static(&mut self, val: Value) {
         let ty = &self.descriptor.0;
         match &mut self.backing {
@@ -34,6 +44,10 @@ impl Field {
                 panic!("tried to store value statically into non-static field");
             }
         }
+    }
+
+    pub fn is_static(&self) -> bool {
+        self.access_flags & fields::acc::STATIC == 0
     }
 }
 

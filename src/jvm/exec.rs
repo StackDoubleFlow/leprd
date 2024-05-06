@@ -417,12 +417,8 @@ impl Thread {
                     let field = Class::field_reference(class_id, idx);
                     let defining_class = method_area().fields[field].defining_class;
                     self.ensure_initialized(defining_class);
-                    self.operand_stack.push(
-                        method_area().fields[field]
-                            .static_value
-                            .unwrap()
-                            .extend_32(),
-                    );
+                    self.operand_stack
+                        .push(method_area().fields[field].load_static());
                 }
                 // putstatic
                 179 => {
@@ -503,8 +499,8 @@ impl Thread {
                     let class_id = self.class_id();
                     let obj_class = Class::class_reference(class_id, idx);
                     self.ensure_initialized(obj_class);
-                    let obj_id = Object::new(obj_class);
-                    self.operand_stack.push(Value::Object(Some(obj_id)))
+                    let obj_ref = heap().new_object(obj_class);
+                    self.operand_stack.push(Value::Object(Some(obj_ref)))
                 }
                 // newarray
                 188 => {

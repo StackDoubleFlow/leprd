@@ -1,5 +1,5 @@
 use crate::class_file::descriptors::{BaseType, FieldType};
-use crate::heap::{ArrayId, ObjectId};
+use crate::heap::{ArrayRef, ObjectRef};
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum Value {
@@ -11,8 +11,8 @@ pub enum Value {
     Long(i64),
     Short(i16),
     Boolean(bool),
-    Object(Option<ObjectId>),
-    Array(Option<ArrayId>),
+    Object(Option<ObjectRef>),
+    Array(Option<ArrayRef>),
 }
 
 macro_rules! impl_val_op_unary {
@@ -106,8 +106,8 @@ impl std::ops::Shl for Value {
 
 impl_val_op_binary!(std::ops::Add => fn add: Int, Long, Float, Double);
 impl_val_op_binary!(std::ops::Sub => fn sub: Int, Long, Float, Double);
-// impl_val_op_binary!(std::ops::Mul => fn mul(lhs, rhs) = { lhs.overflowing_mul(rhs).0 }: Int, Long);
-// impl_val_op_binary!(std::ops::Mul => fn mul: Float, Double);
+// impl_val_op_binary!(std::ops::Mul => fn mul(lhs, rhs) = { lhs.overflowing_mul(rhs).0 }: Int,
+// Long); impl_val_op_binary!(std::ops::Mul => fn mul: Float, Double);
 impl_val_op_binary!(std::ops::Div => fn div: Int, Long, Float, Double);
 impl_val_op_binary!(std::ops::Rem => fn rem: Int, Long, Float, Double);
 impl_val_op_binary!(std::ops::BitAnd => fn bitand: Int, Long);

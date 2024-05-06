@@ -1,3 +1,5 @@
+use std::alloc::Layout;
+
 #[test]
 fn method_desc_test() {
     let desc = MethodDescriptor::read("([CII)V");

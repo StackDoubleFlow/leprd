@@ -1,6 +1,5 @@
 use std::collections::HashMap;
-use std::sync::LazyLock;
-use std::sync::Mutex;
+use std::sync::{LazyLock, Mutex};
 
 use crate::class::Class;
 use crate::class_loader::{method_area, ClassId};
