@@ -3,7 +3,7 @@ use crate::class::Class;
 use crate::class_file::constant_pool::CPInfo;
 use crate::class_file::descriptors::{BaseType, FieldType, ObjectType};
 use crate::class_loader::method_area;
-use crate::heap::{heap, Array, Object};
+use crate::heap::heap;
 use crate::value::Value;
 use std::cmp::Ordering;
 
@@ -206,7 +206,7 @@ impl Thread {
                         Value::Array(None) => panic!("NullPointerException"),
                         _ => unreachable!(),
                     };
-                    heap().arrays[arr].contents[idx as usize] = val;
+                    heap().store_arr_elem(arr, idx as usize, val);
                 }
                 // bastore, castore, sastore
                 84..=86 => {
@@ -220,8 +220,9 @@ impl Thread {
                         Value::Array(None) => panic!("NullPointerException"),
                         _ => unreachable!(),
                     };
-                    let arr = &mut heap().arrays[arr];
-                    arr.contents[idx as usize] = val.store_ty(&arr.ty);
+                    let heap = heap();
+                    let store_val = val.store_ty(heap.arr_ty(arr));
+                    heap.store_arr_elem(arr, idx as usize, store_val);
                 }
                 // pop
                 87 => {
@@ -440,7 +441,7 @@ impl Thread {
                         _ => unreachable!(),
                     };
                     self.operand_stack
-                        .push(heap().objects[obj].fields[&field].extend_32());
+                        .push(heap().load_field(obj, field).extend_32());
                 }
                 // putfield
                 181 => {
@@ -453,7 +454,11 @@ impl Thread {
                         Value::Object(None) => panic!("NullPointerException"),
                         a => unreachable!("{a:?}"),
                     };
-                    heap().objects[obj].store_field(field, val);
+                    let ma = method_area();
+                    let ty = &ma.fields[field].descriptor.0;
+                    let store_val = val.store_ty(&ty);
+                    drop(ma);
+                    heap().store_field(obj, field, store_val);
                 }
                 // invokevirtual
                 182 => {
@@ -521,10 +526,8 @@ impl Thread {
                         11 => FieldType::BaseType(BaseType::J),
                         _ => panic!(),
                     };
-                    let val = Value::default_for_ty(&ty);
-                    let arr: Box<[Value]> = (0..count).map(|_| val).collect();
-                    let id = heap().arrays.alloc(Array { contents: arr, ty });
-                    self.operand_stack.push(Value::Array(Some(id)));
+                    let arr = heap().new_array(ty, count as usize);
+                    self.operand_stack.push(Value::Array(Some(arr)));
                 }
                 // anewarray
                 189 => {
@@ -538,13 +541,9 @@ impl Thread {
                     };
                     assert!(count >= 0, "NegativeArraySizeException");
 
-                    let arr: Box<[Value]> =
-                        (0..count).map(|_| Value::Object(Option::None)).collect();
-                    let id = heap().arrays.alloc(Array {
-                        contents: arr,
-                        ty: FieldType::ObjectType(ObjectType { class_name }),
-                    });
-                    self.operand_stack.push(Value::Array(Some(id)));
+                    let ty = FieldType::ObjectType(ObjectType { class_name });
+                    let arr = heap().new_array(ty, count as usize);
+                    self.operand_stack.push(Value::Array(Some(arr)));
                 }
                 // arraylength
                 190 => {
@@ -553,7 +552,7 @@ impl Thread {
                         Some(Value::Array(None)) => panic!("NullPointerException"),
                         _ => panic!(),
                     };
-                    let len = heap().arrays[arr].contents.len() as i32;
+                    let len = heap().arr_len(arr) as i32;
                     self.operand_stack.push(Value::Int(len));
                 }
                 // checkcast
@@ -567,7 +566,7 @@ impl Thread {
                         }
                         a => unreachable!("{a:?}"),
                     };
-                    let obj_class = heap().objects[obj].class;
+                    let obj_class = heap().get_obj_class(obj);
 
                     let cp_idx = self.read_u16();
                     let class_id = self.class_id();
@@ -589,7 +588,7 @@ impl Thread {
                         }
                         a => unreachable!("{a:?}"),
                     };
-                    let obj_class = heap().objects[obj].class;
+                    let obj_class = heap().get_obj_class(obj);
 
                     let cp_idx = self.read_u16();
                     let class_id = self.class_id();

@@ -2,7 +2,7 @@ use crate::class::{Class, Field, FieldBacking, Method, Reference};
 use crate::class_file::constant_pool::CPInfo;
 use crate::class_file::descriptors::{BaseType, FieldDescriptor, FieldType, MethodDescriptor};
 use crate::class_file::{fields, ClassFile};
-use crate::heap::{Object, ObjectId};
+use crate::heap::{Object, ObjectRef};
 use crate::value::Value;
 use crate::CONFIG;
 use deku::DekuContainerRead;
@@ -33,7 +33,7 @@ pub enum ClassLoader {
 pub struct MethodArea {
     pub classes: Arena<Class>,
     pub class_map: HashMap<String, ClassId>,
-    pub class_objs: HashMap<ObjectId, ClassId>,
+    pub class_objs: HashMap<ObjectRef, ClassId>,
     pub methods: Arena<Method>,
     pub fields: Arena<Field>,
 }
@@ -166,8 +166,8 @@ pub fn load_class_bootstrap(ma: &mut MethodArea, name: &str) -> ClassId {
         (super_class.size, super_class.alignment)
     } else {
         (
-            std::mem::size_of::<Object> as u32,
-            std::mem::align_of::<Object> as u8,
+            std::mem::size_of::<Object>() as u32,
+            std::mem::align_of::<Object>() as u8,
         )
     };
 

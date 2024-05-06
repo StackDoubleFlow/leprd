@@ -168,3 +168,27 @@ impl Value {
         }
     }
 }
+
+/// Used for type checking loads and stores
+pub trait MatchesFieldType {
+    fn matches_field_type(field_type: &FieldType) -> bool;
+}
+
+macro_rules! impl_matches_field_type {
+    ($field_pattern:pat, $ty:ty) => {
+        impl MatchesFieldType for $ty {
+            fn matches_field_type(field_type: &FieldType) -> bool {
+                matches!(field_type, $field_pattern)
+            }
+        }
+    };
+}
+
+impl_matches_field_type!(FieldType::BaseType(BaseType::B), i8);
+impl_matches_field_type!(FieldType::BaseType(BaseType::C), u8);
+impl_matches_field_type!(FieldType::BaseType(BaseType::D), f64);
+impl_matches_field_type!(FieldType::BaseType(BaseType::F), f32);
+impl_matches_field_type!(FieldType::BaseType(BaseType::I), i32);
+impl_matches_field_type!(FieldType::BaseType(BaseType::J), i64);
+impl_matches_field_type!(FieldType::ObjectType(_), Option<ObjectRef>);
+impl_matches_field_type!(FieldType::ArrayType(_), Option<ArrayRef>);

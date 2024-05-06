@@ -24,9 +24,5 @@ pub fn arraycopy(thread: &mut Thread) {
         _ => panic!(),
     };
 
-    let mut heap = heap();
-    let mut buf = vec![Value::Byte(0); length];
-    buf.clone_from_slice(&heap.arrays[src].contents[src_pos..src_pos + length]);
-
-    heap.arrays[dest].contents[dest_pos..dest_pos + length].clone_from_slice(&buf);
+    heap().array_copy(src, src_pos, dest, dest_pos, length);
 }

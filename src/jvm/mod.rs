@@ -5,7 +5,7 @@ use crate::class_file::attributes::CodeAttribute;
 use crate::class_file::descriptors::{BaseType, FieldType};
 use crate::class_file::methods;
 use crate::class_loader::{method_area, ClassId, MethodId};
-use crate::heap::{heap, Array, Object, ObjectId};
+use crate::heap::{heap, ObjectRef};
 use crate::value::Value;
 use std::mem;
 use std::sync::Arc;
@@ -139,16 +139,14 @@ impl Thread {
         }
     }
 
-    fn create_string(&mut self, str: &str) -> ObjectId {
-        let arr: Box<[Value]> = str
+    fn create_string(&mut self, str: &str) -> ObjectRef {
+        let arr: Vec<i8> = str
             .encode_utf16()
             .flat_map(|x| x.to_ne_bytes())
-            .map(|b| Value::Byte(b as i8))
+            .map(|b| b as i8)
             .collect();
-        let arr_id = heap().arrays.alloc(Array {
-            contents: arr,
-            ty: FieldType::BaseType(BaseType::B),
-        });
+        let arr_ref = heap().new_array(FieldType::BaseType(BaseType::B), arr.len());
+        heap().array_contents(arr_ref).copy_from_slice(&arr);
 
         let mut ma = method_area();
         let str_class = ma.resolve_class("java/lang/String");
@@ -156,12 +154,10 @@ impl Thread {
         let coder_field = ma.resolve_field(str_class, "coder");
         drop(ma);
 
-        let str_obj_id = Object::new(str_class);
-        let str_obj = &mut heap().objects[str_obj_id];
-        str_obj
-            .fields
-            .insert(value_field, Value::Array(Some(arr_id)));
-        str_obj.fields.insert(coder_field, Value::Byte(1));
+        let mut heap = heap();
+        let str_obj_id = heap.new_object(str_class);
+        heap.store_field(str_obj_id, value_field, Value::Array(Some(arr_ref)));
+        heap.store_field(str_obj_id, coder_field, Value::Byte(1));
 
         str_obj_id
     }
@@ -187,7 +183,7 @@ impl Thread {
             Value::Array(None) => panic!("NullPointerException"),
             _ => unreachable!(),
         };
-        heap().arrays[arr].contents[idx]
+        heap().load_arr_elem(arr, idx)
     }
 
     /// For method selection in invokeinterface and invokevirtual instructions
@@ -202,7 +198,7 @@ impl Thread {
             Value::Object(None) => panic!("NullPointerException"),
             _ => unreachable!(),
         };
-        let obj_class = heap().objects[obj].class;
+        let obj_class = heap().get_obj_class(obj);
 
         let mut cur_class = obj_class;
         loop {

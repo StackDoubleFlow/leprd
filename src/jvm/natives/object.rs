@@ -8,7 +8,7 @@ pub fn get_class(thread: &mut Thread) {
         Value::Object(Some(obj)) => obj,
         _ => panic!(),
     };
-    let class = heap().objects[obj].class;
+    let class = heap().get_obj_class(obj);
     thread
         .operand_stack
         .push(Value::Object(Some(Class::obj(class))));

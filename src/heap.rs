@@ -1,12 +1,9 @@
 use crate::class::FieldBacking;
 use crate::class_file::descriptors::{BaseType, FieldType};
-use crate::class_file::fields;
-use crate::class_loader::{method_area, ClassId, FieldId, MethodArea};
-use crate::value::Value;
-use id_arena::{Arena, Id};
-use std::collections::HashMap;
+use crate::class_loader::{method_area, ClassId, FieldId};
+use crate::value::{MatchesFieldType, Value};
+use std::alloc::{alloc_zeroed, Layout};
 use std::sync::{LazyLock, Mutex, MutexGuard};
-use std::alloc::{self, alloc_zeroed, Layout};
 
 static HEAP: LazyLock<Mutex<Heap>> = LazyLock::new(Default::default);
 
@@ -26,7 +23,7 @@ fn layout_for_field(field_ty: &FieldType) -> Layout {
             BaseType::J => Layout::new::<i64>(),
             BaseType::S => Layout::new::<i16>(),
             BaseType::Z => Layout::new::<bool>(),
-        }
+        },
         FieldType::ObjectType(_) => Layout::new::<*mut Object>(),
         FieldType::ArrayType(_) => Layout::new::<*mut Array>(),
     }
@@ -40,6 +37,52 @@ pub fn arr_layout(elem_ty: &FieldType, len: usize) -> (Layout, usize, usize) {
     (combined_layout, offset, stride)
 }
 
+unsafe fn store_value(ptr: *mut u8, val: Value) {
+    match val {
+        Value::Byte(val) => ptr.cast::<i8>().write(val),
+        Value::Char(val) => ptr.cast::<u8>().write(val),
+        Value::Double(val) => ptr.cast::<f64>().write(val),
+        Value::Float(val) => ptr.cast::<f32>().write(val),
+        Value::Int(val) => ptr.cast::<i32>().write(val),
+        Value::Long(val) => ptr.cast::<i64>().write(val),
+        Value::Short(val) => ptr.cast::<i16>().write(val),
+        Value::Boolean(val) => ptr.cast::<bool>().write(val),
+        Value::Array(arr_ref) => {
+            let arr_ptr = arr_ref.map_or(std::ptr::null_mut(), |r| r.0);
+            let ptr = ptr.cast::<*mut Array>();
+            ptr.write(arr_ptr);
+        }
+        Value::Object(obj_ref) => {
+            let obj_ptr = obj_ref.map_or(std::ptr::null_mut(), |r| r.0);
+            let ptr = ptr.cast::<*mut Object>();
+            ptr.write(obj_ptr);
+        }
+    }
+}
+
+unsafe fn load_value(ptr: *const u8, ty: &FieldType) -> Value {
+    match ty {
+        FieldType::BaseType(ty) => match ty {
+            BaseType::B => Value::Byte(ptr.cast::<i8>().read()),
+            BaseType::C => Value::Char(ptr.cast::<u8>().read()),
+            BaseType::D => Value::Double(ptr.cast::<f64>().read()),
+            BaseType::F => Value::Float(ptr.cast::<f32>().read()),
+            BaseType::I => Value::Int(ptr.cast::<i32>().read()),
+            BaseType::J => Value::Long(ptr.cast::<i64>().read()),
+            BaseType::S => Value::Short(ptr.cast::<i16>().read()),
+            BaseType::Z => Value::Boolean(ptr.cast::<bool>().read()),
+        },
+        FieldType::ArrayType(_) => {
+            let arr_ptr = ptr.cast::<*mut Array>().read();
+            Value::Array((!arr_ptr.is_null()).then_some(ArrayRef(arr_ptr)))
+        }
+        FieldType::ObjectType(_) => {
+            let obj_ptr = ptr.cast::<*mut Object>().read();
+            Value::Object((!obj_ptr.is_null()).then_some(ObjectRef(obj_ptr)))
+        }
+    }
+}
+
 #[derive(Default, Debug)]
 pub struct Heap {
     pub objects: Vec<ObjectRef>,
@@ -50,10 +93,9 @@ impl Heap {
     pub fn new_object(&mut self, class_id: ClassId) -> ObjectRef {
         let ma = method_area();
         let class = &ma.classes[class_id];
-        let layout = Layout::from_size_align(class.size as usize, class.alignment as usize).unwrap();
-        let object = Object {
-            class: class_id,
-        };
+        let layout =
+            Layout::from_size_align(class.size as usize, class.alignment as usize).unwrap();
+        let object = Object { class: class_id };
         let object_ptr = unsafe {
             let ptr = alloc_zeroed(layout).cast::<Object>();
             (*ptr) = object;
@@ -66,11 +108,12 @@ impl Heap {
     }
 
     pub fn new_array(&mut self, elem_ty: FieldType, len: usize) -> ArrayRef {
-        let (layout, _, _) = arr_layout(&elem_ty, len);
+        let (layout, offset, _) = arr_layout(&elem_ty, len);
 
         let array = Array {
             ty: elem_ty,
             len,
+            offset,
         };
         let array_ptr = unsafe {
             let ptr = alloc_zeroed(layout).cast::<Array>();
@@ -83,13 +126,45 @@ impl Heap {
         arr_ref
     }
 
-    pub fn arr_len(&self, arr: ArrayRef) {
+    pub fn arr_len(&self, arr: ArrayRef) -> usize {
         unsafe { (*arr.0).len }
     }
 
+    pub fn arr_ty(&self, arr: ArrayRef) -> &FieldType {
+        unsafe { &(*arr.0).ty }
+    }
+
     pub fn get_obj_class(&self, obj_ref: ObjectRef) -> ClassId {
+        unsafe { (*obj_ref.0).class }
+    }
+
+    pub fn array_copy(
+        &mut self,
+        src_ref: ArrayRef,
+        src_idx: usize,
+        dst_ref: ArrayRef,
+        dst_idx: usize,
+        len: usize,
+    ) {
         unsafe {
-            (*obj_ref.0).class
+            let src_arr = &*src_ref.0;
+            let dst_arr = &*src_ref.0;
+            assert_eq!(src_arr.ty, dst_arr.ty);
+            assert!(src_idx + len < src_arr.len);
+            assert!(dst_idx + len < dst_arr.len);
+
+            let elem_layout = layout_for_field(&src_arr.ty);
+            let (span_layout, stride) = elem_layout.repeat(len).unwrap();
+
+            let src_ptr = src_ref
+                .0
+                .cast::<u8>()
+                .offset((src_arr.offset + src_idx * stride) as isize);
+            let dst_ptr = dst_ref
+                .0
+                .cast::<u8>()
+                .offset((dst_arr.offset + dst_idx * stride) as isize);
+            std::ptr::copy(src_ptr, dst_ptr, span_layout.size());
         }
     }
 
@@ -103,32 +178,12 @@ impl Heap {
 
         unsafe {
             let field_ptr = obj_ref.0.byte_offset(offset as isize);
-            match ty {
-                FieldType::BaseType(ty) => match ty {
-                    BaseType::B => Value::Byte(field_ptr.cast::<i8>().read()),
-                    BaseType::C => Value::Char(field_ptr.cast::<u8>().read()),
-                    BaseType::D => Value::Double(field_ptr.cast::<f64>().read()),
-                    BaseType::F => Value::Float(field_ptr.cast::<f32>().read()),
-                    BaseType::I => Value::Int(field_ptr.cast::<i32>().read()),
-                    BaseType::J => Value::Long(field_ptr.cast::<i64>().read()),
-                    BaseType::S => Value::Short(field_ptr.cast::<i16>().read()),
-                    BaseType::Z => Value::Boolean(field_ptr.cast::<bool>().read()),
-                }
-                FieldType::ArrayType(_) => {
-                    let arr_ptr = field_ptr.cast::<*mut Array>().read();
-                    Value::Array((!arr_ptr.is_null()).then_some(ArrayRef(arr_ptr)))
-                }
-                FieldType::ObjectType(_) => {
-                    let obj_ptr = field_ptr.cast::<*mut Object>().read();
-                    Value::Object((!obj_ptr.is_null()).then_some(ObjectRef(obj_ptr)))
-                }
-            }
+            load_value(field_ptr.cast::<u8>(), ty)
         }
     }
 
     pub fn store_field(&mut self, obj_ref: ObjectRef, field_id: FieldId, val: Value) {
         let field = &method_area().fields[field_id];
-        let ty = &field.descriptor.0;
         let offset = match field.backing {
             FieldBacking::Instance(offset) => offset,
             _ => panic!("tried to store into a static field with instance obj"),
@@ -136,33 +191,49 @@ impl Heap {
 
         unsafe {
             let field_ptr = obj_ref.0.byte_offset(offset as isize);
-            match val.store_ty(ty) {
-                Value::Byte(val) => field_ptr.cast::<i8>().write(val),
-                Value::Char(val) => field_ptr.cast::<u8>().write(val),
-                Value::Double(val) => field_ptr.cast::<f64>().write(val),
-                Value::Float(val) => field_ptr.cast::<f32>().write(val),
-                Value::Int(val) => field_ptr.cast::<i32>().write(val),
-                Value::Long(val) => field_ptr.cast::<i64>().write(val),
-                Value::Short(val) => field_ptr.cast::<i16>().write(val),
-                Value::Boolean(val) => field_ptr.cast::<bool>().write(val),
-                Value::Array(arr_ref) => {
-                    let arr_ptr = arr_ref.map_or(std::ptr::null_mut(), |r| r.0);
-                    let field_ptr = field_ptr.cast::<*mut Array>();
-                    field_ptr.write(arr_ptr);
-                }
-                Value::Object(obj_ref) => {
-                    let obj_ptr = obj_ref.map_or(std::ptr::null_mut(), |r| r.0);
-                    let field_ptr = field_ptr.cast::<*mut Object>();
-                    field_ptr.write(obj_ptr);
-                }
-            }
+            store_value(field_ptr.cast::<u8>(), val);
         }
+    }
+
+    unsafe fn arr_elem_ptr(arr: &mut Array, idx: usize) -> *mut u8 {
+        let (_, offset, stride) = arr_layout(&arr.ty, arr.len);
+        (arr as *mut Array)
+            .cast::<u8>()
+            .offset((offset + idx * stride) as isize)
+    }
+
+    pub fn load_arr_elem(&self, arr_ref: ArrayRef, idx: usize) -> Value {
+        unsafe {
+            let arr = &mut *arr_ref.0;
+            let elem_ptr = Self::arr_elem_ptr(arr, idx);
+            load_value(elem_ptr, &arr.ty)
+        }
+    }
+
+    pub fn store_arr_elem(&self, arr_ref: ArrayRef, idx: usize, val: Value) {
+        unsafe {
+            let arr = &mut *arr_ref.0;
+            let elem_ptr = Self::arr_elem_ptr(arr, idx);
+            store_value(elem_ptr, val);
+        }
+    }
+
+    pub unsafe fn array_contents_unchecked<T>(&mut self, arr_ref: ArrayRef) -> &mut [T] {
+        let arr = &*arr_ref.0;
+        let data_ptr = arr_ref.0.byte_offset(arr.offset as isize);
+        std::slice::from_raw_parts_mut(data_ptr.cast::<T>(), arr.len)
+    }
+
+    pub fn array_contents<T: MatchesFieldType>(&mut self, arr_ref: ArrayRef) -> &mut [T] {
+        let elem_ty = &unsafe { &*arr_ref.0 }.ty;
+        T::matches_field_type(&elem_ty);
+        unsafe { self.array_contents_unchecked(arr_ref) }
     }
 }
 
 /// We CANNOT keep these around between GC runs unless it is somewhere the GC can see,
 /// i.e. in an object or array.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct ObjectRef(*mut Object);
 
 unsafe impl Send for ObjectRef {}
@@ -170,15 +241,12 @@ unsafe impl Sync for ObjectRef {}
 
 /// We CANNOT keep these around between GC runs unless it is somewhere the GC can see,
 /// i.e. in an object or array.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ArrayRef(*mut Array);
 
 unsafe impl Send for ArrayRef {}
 unsafe impl Sync for ArrayRef {}
-
-pub type ObjectId = Id<Object>;
-pub type ArrayId = Id<Array>;
 
 #[derive(Debug)]
 pub struct Object {
@@ -204,21 +272,18 @@ impl Object {
             _ => unreachable!(),
         };
         if coder == 0 {
-            let utf8 = heap.arrays[value]
-                .contents
+            let utf8 = heap
+                .array_contents(value)
                 .iter()
-                .map(|x| match x {
-                    Value::Byte(x) => *x as u8,
-                    _ => unreachable!(),
-                })
+                .map(|c: &i8| *c as u8)
                 .collect();
             String::from_utf8(utf8).unwrap()
         } else {
-            let utf16 = heap.arrays[value]
-                .contents
+            let utf16 = heap
+                .array_contents(value)
                 .chunks_exact(2)
                 .map(|c| match c {
-                    &[Value::Byte(a), Value::Byte(b)] => u16::from_ne_bytes([a as u8, b as u8]),
+                    &[a, b] => u16::from_ne_bytes([a, b]),
                     _ => unreachable!(),
                 })
                 .collect::<Vec<_>>();
@@ -231,4 +296,5 @@ impl Object {
 pub struct Array {
     pub ty: FieldType,
     pub len: usize,
+    pub offset: usize,
 }
