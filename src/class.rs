@@ -1,5 +1,5 @@
 use crate::class_file::attributes::CodeAttribute;
-use crate::class_file::descriptors::{FieldDescriptor, MethodDescriptor};
+use crate::class_file::descriptors::{FieldDescriptor, FieldType, MethodDescriptor};
 use crate::class_file::fields;
 use crate::class_file::ConstantPool;
 use crate::class_loader::{method_area, ClassId, ClassLoader, FieldId, MethodId};
@@ -109,6 +109,9 @@ pub struct Class {
     pub access_flags: u16,
     pub methods: Vec<MethodId>,
     pub fields: Vec<FieldId>,
+
+    /// Array element type. Only used for array classes.
+    pub elem_ty: Option<FieldType>,
 
     pub size: u32,
     pub alignment: u8,

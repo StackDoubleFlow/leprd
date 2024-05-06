@@ -41,11 +41,15 @@ pub struct MethodArea {
 impl MethodArea {
     fn resolve_arr_class(&mut self, desc: FieldDescriptor) -> Id<Class> {
         let name = format!("{}", desc.0);
+        let elem_ty = match desc.0 {
+            FieldType::ArrayType(arr_ty) => arr_ty.0 .0,
+            _ => panic!("tried to resolve array class with non-array descriptor"),
+        };
 
         let id = self.class_map.get(&name).cloned();
         match id {
             Some(id) => id,
-            None => load_arr_class_bootstrap(self, &name),
+            None => load_arr_class_bootstrap(self, elem_ty, &name),
         }
     }
 
@@ -258,6 +262,7 @@ pub fn load_class_bootstrap(ma: &mut MethodArea, name: &str) -> ClassId {
         fields,
         access_flags: class_file.access_flags,
         constant_pool: class_file.constant_pool,
+        elem_ty: None,
         alignment,
         size,
     };
@@ -276,7 +281,7 @@ pub fn load_class_bootstrap(ma: &mut MethodArea, name: &str) -> ClassId {
     id
 }
 
-pub fn load_arr_class_bootstrap(ma: &mut MethodArea, name: &str) -> ClassId {
+pub fn load_arr_class_bootstrap(ma: &mut MethodArea, elem_ty: FieldType, name: &str) -> ClassId {
     let name = name.to_string();
     let super_class_id = ma.resolve_class("java/lang/Object");
     let super_class = &ma.classes[super_class_id];
@@ -292,6 +297,7 @@ pub fn load_arr_class_bootstrap(ma: &mut MethodArea, name: &str) -> ClassId {
         fields: vec![],  // FIXME: this should have length
         access_flags: Default::default(),
         constant_pool: Default::default(),
+        elem_ty: Some(elem_ty),
         size: super_class.size,
         alignment: super_class.alignment,
     };
