@@ -17,10 +17,8 @@ static PRIMITIVE_CLASSES: LazyLock<Mutex<HashMap<String, ClassId>>> =
     LazyLock::new(Default::default);
 
 pub fn get_primitive_class(thread: &mut Thread) {
-    let str_obj = match thread.pop() {
-        Value::Object(Some(obj)) => obj,
-        Value::Object(None) => panic!("NullPointerException"),
-        _ => unreachable!(),
+    let Some(str_obj) = thread.pop().object() else {
+        panic!("NullPointerException");
     };
     let str = Object::read_string(str_obj);
     let mut primitive_classes = PRIMITIVE_CLASSES.lock().unwrap();
@@ -45,9 +43,8 @@ pub fn get_primitive_class(thread: &mut Thread) {
 }
 
 pub fn init_class_name(thread: &mut Thread) {
-    let class_class_obj = match thread.pop() {
-        Value::Object(Some(obj)) => obj,
-        _ => panic!(),
+    let Some(class_class_obj) = thread.pop().object() else {
+        panic!("NullPointerException");
     };
     let mut ma = method_area();
     let class_class = ma.resolve_class("java/lang/Class");

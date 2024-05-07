@@ -197,28 +197,18 @@ impl Thread {
                 // iastore, lastore, fastore, dastore, aastore
                 79..=83 => {
                     let val = self.pop();
-                    let idx = match self.pop() {
-                        Value::Int(idx) => idx,
-                        _ => unreachable!(),
-                    };
-                    let arr = match self.pop() {
-                        Value::Array(Some(arr)) => arr,
-                        Value::Array(None) => panic!("NullPointerException"),
-                        _ => unreachable!(),
+                    let idx = self.pop().int();
+                    let Some(arr) = self.pop().array() else {
+                        panic!("NullPointerException");
                     };
                     heap().store_arr_elem(arr, idx as usize, val);
                 }
                 // bastore, castore, sastore
                 84..=86 => {
                     let val = self.pop();
-                    let idx = match self.pop() {
-                        Value::Int(idx) => idx,
-                        _ => unreachable!(),
-                    };
-                    let arr = match self.pop() {
-                        Value::Array(Some(arr)) => arr,
-                        Value::Array(None) => panic!("NullPointerException"),
-                        _ => unreachable!(),
+                    let idx = self.pop().int();
+                    let Some(arr) = self.pop().array() else {
+                        panic!("NullPointerException");
                     };
                     let heap = heap();
                     let store_val = val.store_ty(heap.arr_ty(arr));
@@ -299,14 +289,8 @@ impl Thread {
                 146 => cast!(self, Int, Int, val -> val % 0xF),
                 // lcmp
                 148 => {
-                    let value2 = match self.pop() {
-                        Value::Long(val) => val,
-                        _ => unreachable!(),
-                    };
-                    let value1 = match self.pop() {
-                        Value::Long(val) => val,
-                        _ => unreachable!(),
-                    };
+                    let value2 = self.pop().long();
+                    let value1 = self.pop().long();
                     let res = match value1.cmp(&value2) {
                         Ordering::Greater => 1,
                         Ordering::Equal => 0,
@@ -316,14 +300,8 @@ impl Thread {
                 }
                 // fcmpg, fcmpl
                 149..=150 => {
-                    let value2 = match self.pop() {
-                        Value::Float(val) => val,
-                        _ => unreachable!(),
-                    };
-                    let value1 = match self.pop() {
-                        Value::Float(val) => val,
-                        _ => unreachable!(),
-                    };
+                    let value2 = self.pop().float();
+                    let value1 = self.pop().float();
                     let res = match value1.partial_cmp(&value2) {
                         Some(Ordering::Greater) => 1,
                         Some(Ordering::Equal) => 0,
@@ -338,10 +316,7 @@ impl Thread {
                 }
                 // if<cond>
                 153..=158 => {
-                    let val = match self.pop() {
-                        Value::Int(val) => val,
-                        _ => unreachable!(),
-                    };
+                    let val = self.pop().int();
                     self.br_if(
                         cur_pc,
                         match opcode {
@@ -357,14 +332,8 @@ impl Thread {
                 }
                 // if_icmp<cond>
                 159..=164 => {
-                    let rhs = match self.pop() {
-                        Value::Int(val) => val,
-                        _ => unreachable!(),
-                    };
-                    let lhs = match self.pop() {
-                        Value::Int(val) => val,
-                        _ => unreachable!(),
-                    };
+                    let rhs = self.pop().int();
+                    let lhs = self.pop().int();
                     self.br_if(
                         cur_pc,
                         match opcode {
@@ -380,14 +349,8 @@ impl Thread {
                 }
                 // if_acmp<cond>
                 165..=166 => {
-                    let rhs = match self.pop() {
-                        Value::Object(val) => val,
-                        _ => unreachable!(),
-                    };
-                    let lhs = match self.pop() {
-                        Value::Object(val) => val,
-                        _ => unreachable!(),
-                    };
+                    let rhs = self.pop().object();
+                    let lhs = self.pop().object();
                     self.br_if(
                         cur_pc,
                         match opcode {
@@ -435,10 +398,8 @@ impl Thread {
                     let idx = self.read_u16();
                     let class_id = self.class_id();
                     let field = Class::field_reference(class_id, idx);
-                    let obj = match self.pop() {
-                        Value::Object(Some(obj)) => obj,
-                        Value::Object(None) => panic!("NullPointerException"),
-                        _ => unreachable!(),
+                    let Some(obj) = self.pop().object() else {
+                        panic!("NullPointerException");
                     };
                     self.operand_stack
                         .push(heap().load_field(obj, field).extend_32());
@@ -449,10 +410,8 @@ impl Thread {
                     let class_id = self.class_id();
                     let field = Class::field_reference(class_id, idx);
                     let val = self.pop();
-                    let obj = match self.pop() {
-                        Value::Object(Some(obj)) => obj,
-                        Value::Object(None) => panic!("NullPointerException"),
-                        a => unreachable!("{a:?}"),
+                    let Some(obj) = self.pop().object() else {
+                        panic!("NullPointerException");
                     };
                     let ma = method_area();
                     let ty = &ma.fields[field].descriptor.0;
@@ -580,13 +539,12 @@ impl Thread {
                 }
                 // instanceof
                 193 => {
-                    let obj = match self.pop() {
-                        Value::Object(Some(obj)) => obj,
-                        Value::Object(None) => {
+                    let obj = match self.pop().object() {
+                        Some(obj) => obj,
+                        None => {
                             self.operand_stack.push(Value::Int(0));
                             continue;
                         }
-                        a => unreachable!("{a:?}"),
                     };
                     let obj_class = heap().get_obj_class(obj);
 

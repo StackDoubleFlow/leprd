@@ -4,9 +4,8 @@ use crate::jvm::Thread;
 use crate::value::Value;
 
 pub fn get_class(thread: &mut Thread) {
-    let obj = match thread.pop() {
-        Value::Object(Some(obj)) => obj,
-        _ => panic!(),
+    let Some(obj) = thread.pop().object() else {
+        panic!("NullPointerException");
     };
     let class = heap().get_obj_class(obj);
     thread
@@ -15,9 +14,8 @@ pub fn get_class(thread: &mut Thread) {
 }
 
 pub fn hash_code(thread: &mut Thread) {
-    let _obj = match thread.pop() {
-        Value::Object(Some(obj)) => obj,
-        _ => panic!(),
+    let Some(_obj) = thread.pop().object() else {
+        panic!("NullPointerException");
     };
     // lmaoxd
     // FIXME: According to the spec, this is technically valid,

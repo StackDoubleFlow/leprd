@@ -174,14 +174,9 @@ impl Thread {
     }
 
     fn arr_load(&mut self) -> Value {
-        let idx = match self.pop() {
-            Value::Int(x) => x as usize,
-            _ => unreachable!(),
-        };
-        let arr = match self.pop() {
-            Value::Array(Some(arr)) => arr,
-            Value::Array(None) => panic!("NullPointerException"),
-            _ => unreachable!(),
+        let idx = self.pop().int() as usize;
+        let Some(arr) = self.pop().array() else {
+            panic!("NullPointerException");
         };
         heap().load_arr_elem(arr, idx)
     }

@@ -192,3 +192,54 @@ impl_matches_field_type!(FieldType::BaseType(BaseType::I), i32);
 impl_matches_field_type!(FieldType::BaseType(BaseType::J), i64);
 impl_matches_field_type!(FieldType::ObjectType(_), Option<ObjectRef>);
 impl_matches_field_type!(FieldType::ArrayType(_), Option<ArrayRef>);
+
+macro_rules! unwrap_val {
+    ($value_type:ident, $expr:expr) => {
+        match ($expr) {
+            Value::$value_type(x) => x,
+            _ => panic!("Unwrapped value with incorrect type"),
+        }
+    };
+}
+
+impl Value {
+    pub fn byte(self) -> i8 {
+        unwrap_val!(Byte, self)
+    }
+
+    pub fn char(self) -> u8 {
+        unwrap_val!(Char, self)
+    }
+
+    pub fn double(self) -> f64 {
+        unwrap_val!(Double, self)
+    }
+
+    pub fn float(self) -> f32 {
+        unwrap_val!(Float, self)
+    }
+
+    pub fn int(self) -> i32 {
+        unwrap_val!(Int, self)
+    }
+
+    pub fn long(self) -> i64 {
+        unwrap_val!(Long, self)
+    }
+
+    pub fn short(self) -> i16 {
+        unwrap_val!(Short, self)
+    }
+
+    pub fn boolean(self) -> bool {
+        unwrap_val!(Boolean, self)
+    }
+
+    pub fn object(self) -> Option<ObjectRef> {
+        unwrap_val!(Object, self)
+    }
+
+    pub fn array(self) -> Option<ArrayRef> {
+        unwrap_val!(Array, self)
+    }
+}
