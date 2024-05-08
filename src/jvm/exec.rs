@@ -234,20 +234,48 @@ impl Thread {
                 97 => binary_op!(self, +),
                 // fadd
                 98 => binary_op!(self, +),
+                // dadd
+                99 => binary_op!(self, +),
                 // isub
                 100 => binary_op!(self, -),
+                // lsub
+                101 => binary_op!(self, -),
+                // fsub
+                102 => binary_op!(self, -),
+                // dsub
+                103 => binary_op!(self, -),
                 // imul
                 104 => binary_op!(self, *),
                 // lmul
                 105 => binary_op!(self, *),
                 // fmul
                 106 => binary_op!(self, *),
+                // dmul
+                107 => binary_op!(self, *),
+                // idiv
+                108 => binary_op!(self, /),
+                // ldiv
+                109 => binary_op!(self, /),
                 // fdiv
                 110 => binary_op!(self, /),
+                // ddiv
+                111 => binary_op!(self, /),
                 // irem
                 112 => binary_op!(self, %),
+                // lrem
+                113 => binary_op!(self, %),
+                // frem
+                114 => binary_op!(self, %),
+                // drem
+                115 => binary_op!(self, %),
                 // ineg
                 116 => unary_op!(self, -),
+                // lneg
+                117 => unary_op!(self, -),
+                // fneg
+                118 => unary_op!(self, -),
+                // dneg
+                119 => unary_op!(self, -),
                 // ishl
                 120 => binary_op!(self, <<),
                 // lshl
@@ -268,6 +296,8 @@ impl Thread {
                 127 => binary_op!(self, &),
                 // ixor
                 130 => binary_op!(self, ^),
+                // lxor
+                131 => binary_op!(self, ^),
                 // iinc
                 132 => {
                     let idx = self.read_ins() as usize;
@@ -277,16 +307,36 @@ impl Thread {
                         _ => unreachable!(),
                     }
                 }
-                // i2f
-                134 => cast!(self, Int, Float, val -> val as f32),
                 // i2l
                 133 => cast!(self, Int, Long, val -> val as i64),
+                // i2f
+                134 => cast!(self, Int, Float, val -> val as f32),
+                // i2d
+                135 => cast!(self, Int, Double, val -> val as f64),
                 // l2i
                 136 => cast!(self, Long, Int, val -> val as i32),
+                // l2f
+                137 => cast!(self, Long, Float, val -> val as f32),
+                // l2d
+                138 => cast!(self, Long, Double, val -> val as f64),
                 // f2i
                 139 => cast!(self, Float, Int, val -> val as i32),
+                // f2l
+                140 => cast!(self, Float, Long, val -> val as i64),
+                // f2d
+                141 => cast!(self, Float, Double, val -> val as f64),
+                // d2i
+                142 => cast!(self, Double, Int, val -> val as i32),
+                // d2l
+                143 => cast!(self, Double, Long, val -> val as i64),
+                // d2f
+                144 => cast!(self, Double, Float, val -> val as f32),
+                // i2b
+                145 => cast!(self, Float, Int, val -> val as i32),
                 // i2c
-                146 => cast!(self, Int, Int, val -> val % 0xF),
+                146 => cast!(self, Int, Int, val -> val & 0xFF),
+                // i2s
+                147 => cast!(self, Int, Int, val -> val & 0xFFFF),
                 // lcmp
                 148 => {
                     let value2 = self.pop().long();
