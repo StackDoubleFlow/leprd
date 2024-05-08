@@ -229,6 +229,42 @@ impl Heap {
         T::matches_field_type(&elem_ty);
         unsafe { self.array_contents_unchecked(arr_ref) }
     }
+
+    pub fn read_string(&mut self, str_obj: ObjectRef) -> String {
+        let str_class = self.get_obj_class(str_obj);
+
+        let ma = method_area();
+        let value_field = ma.resolve_field(str_class, "value");
+        let coder_field = ma.resolve_field(str_class, "coder");
+        drop(ma);
+
+        let value = match self.load_field(str_obj, value_field) {
+            Value::Array(Some(arr)) => arr,
+            _ => unreachable!(),
+        };
+        let coder = match self.load_field(str_obj, coder_field) {
+            Value::Byte(val) => val,
+            _ => unreachable!(),
+        };
+        if coder == 0 {
+            let utf8 = self
+                .array_contents(value)
+                .iter()
+                .map(|c: &i8| *c as u8)
+                .collect();
+            String::from_utf8(utf8).unwrap()
+        } else {
+            let utf16 = self
+                .array_contents(value)
+                .chunks_exact(2)
+                .map(|c| match c {
+                    &[a, b] => u16::from_ne_bytes([a, b]),
+                    _ => unreachable!(),
+                })
+                .collect::<Vec<_>>();
+            String::from_utf16(&utf16).unwrap()
+        }
+    }
 }
 
 /// We CANNOT keep these around between GC runs unless it is somewhere the GC can see,
@@ -250,51 +286,12 @@ unsafe impl Sync for ArrayRef {}
 
 #[derive(Debug)]
 pub struct Object {
-    pub class: ClassId,
-}
-
-impl Object {
-    pub fn read_string(str_obj: ObjectRef) -> String {
-        let str_class = heap().get_obj_class(str_obj);
-
-        let ma = method_area();
-        let value_field = ma.resolve_field(str_class, "value");
-        let coder_field = ma.resolve_field(str_class, "coder");
-        drop(ma);
-
-        let mut heap = heap();
-        let value = match heap.load_field(str_obj, value_field) {
-            Value::Array(Some(arr)) => arr,
-            _ => unreachable!(),
-        };
-        let coder = match heap.load_field(str_obj, coder_field) {
-            Value::Byte(val) => val,
-            _ => unreachable!(),
-        };
-        if coder == 0 {
-            let utf8 = heap
-                .array_contents(value)
-                .iter()
-                .map(|c: &i8| *c as u8)
-                .collect();
-            String::from_utf8(utf8).unwrap()
-        } else {
-            let utf16 = heap
-                .array_contents(value)
-                .chunks_exact(2)
-                .map(|c| match c {
-                    &[a, b] => u16::from_ne_bytes([a, b]),
-                    _ => unreachable!(),
-                })
-                .collect::<Vec<_>>();
-            String::from_utf16(&utf16).unwrap()
-        }
-    }
+    class: ClassId,
 }
 
 #[derive(Debug)]
 pub struct Array {
-    pub ty: FieldType,
-    pub len: usize,
-    pub offset: usize,
+    ty: FieldType,
+    len: usize,
+    offset: usize,
 }

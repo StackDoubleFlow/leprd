@@ -3,7 +3,7 @@ use std::sync::{LazyLock, Mutex};
 
 use crate::class::Class;
 use crate::class_loader::{method_area, ClassId};
-use crate::heap::{heap, Object};
+use crate::heap::heap;
 use crate::jvm::Thread;
 use crate::value::Value;
 
@@ -20,7 +20,7 @@ pub fn get_primitive_class(thread: &mut Thread) {
     let Some(str_obj) = thread.pop().object() else {
         panic!("NullPointerException");
     };
-    let str = Object::read_string(str_obj);
+    let str = heap().read_string(str_obj);
     let mut primitive_classes = PRIMITIVE_CLASSES.lock().unwrap();
     let class = primitive_classes.entry(str.clone()).or_insert_with(|| {
         let class_name = match str.as_str() {

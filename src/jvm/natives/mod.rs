@@ -1,10 +1,13 @@
 mod cds;
 mod class;
 mod float;
+mod jdk_unsafe;
 mod object;
+mod reflection;
 mod runtime;
 mod string;
 mod system;
+mod system_props;
 
 use super::Thread;
 
@@ -35,6 +38,21 @@ pub fn run_native(thread: &mut Thread, class: String, method: String) {
             cds::get_random_seed_for_dumping(thread)
         }
         ("jdk/internal/misc/CDS", "initializeFromArchive") => cds::intialize_from_archive(thread),
+        ("jdk/internal/misc/Unsafe", "arrayIndexScale0") => jdk_unsafe::array_index_scale(thread),
+        ("jdk/internal/misc/Unsafe", "arrayBaseOffset0") => jdk_unsafe::array_base_offset(thread),
+        ("jdk/internal/misc/Unsafe", "objectFieldOffset1") => {
+            jdk_unsafe::object_field_offset(thread)
+        }
+        ("jdk/internal/reflect/Reflection", "getCallerClass") => {
+            reflection::get_caller_class(thread)
+        }
+        ("jdk/internal/util/SystemProps$Raw", "platformProperties") => {
+            system_props::platform_properties(thread)
+        }
+        ("jdk/internal/util/SystemProps$Raw", "vmProperties") => {
+            system_props::vm_properties(thread)
+        }
+
         _ => {
             thread.print_stacktrace();
             unimplemented!("native: {}.{}", &class, &method);
