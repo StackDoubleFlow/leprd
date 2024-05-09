@@ -107,7 +107,6 @@ impl Thread {
 
         drop(ma);
         let res = self.run();
-        println!("Returned from method");
 
         let stack_frame = self.stack_frames.pop().unwrap();
         self.method = stack_frame.method;
@@ -118,6 +117,7 @@ impl Thread {
         if let Some(res) = res {
             self.operand_stack.push(res);
         }
+        println!("Returned to method with {} locals, pc:{}", self.locals.len(), self.pc);
     }
 
     fn ensure_initialized(&mut self, class_id: ClassId) {

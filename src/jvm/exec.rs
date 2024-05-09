@@ -567,6 +567,7 @@ impl Thread {
                 // checkcast
                 192 => {
                     let val = self.pop();
+                    let cp_idx = self.read_u16();
                     let obj = match val {
                         Value::Object(Some(obj)) => obj,
                         Value::Object(None) => {
@@ -577,7 +578,6 @@ impl Thread {
                     };
                     let obj_class = heap().get_obj_class(obj);
 
-                    let cp_idx = self.read_u16();
                     let class_id = self.class_id();
                     let ref_class = Class::class_reference(class_id, cp_idx);
 
@@ -589,7 +589,10 @@ impl Thread {
                 }
                 // instanceof
                 193 => {
-                    let obj = match self.pop().object() {
+                    let obj = self.pop().object();
+                    let cp_idx = self.read_u16();
+
+                    let obj = match obj {
                         Some(obj) => obj,
                         None => {
                             self.operand_stack.push(Value::Int(0));
@@ -598,7 +601,6 @@ impl Thread {
                     };
                     let obj_class = heap().get_obj_class(obj);
 
-                    let cp_idx = self.read_u16();
                     let class_id = self.class_id();
                     let ref_class = Class::class_reference(class_id, cp_idx);
 
