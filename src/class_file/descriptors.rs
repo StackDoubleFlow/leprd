@@ -62,7 +62,7 @@ impl FieldDescriptor {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub enum FieldType {
     BaseType(BaseType),
     ObjectType(ObjectType),
@@ -106,7 +106,7 @@ impl std::fmt::Display for FieldType {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 pub enum BaseType {
     /// byte
     B,
@@ -145,13 +145,13 @@ impl std::fmt::Display for BaseType {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct ObjectType {
     pub class_name: String,
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct ArrayType(pub Box<ComponentType>);
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct ComponentType(pub FieldType);

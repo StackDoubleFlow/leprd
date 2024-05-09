@@ -34,29 +34,29 @@ pub struct MethodArea {
     pub classes: Arena<Class>,
     pub class_map: HashMap<String, ClassId>,
     pub class_objs: HashMap<ObjectRef, ClassId>,
+    /// Mapping of the element type to class id
+    pub array_classes: HashMap<FieldType, ClassId>,
     pub methods: Arena<Method>,
     pub fields: Arena<Field>,
 }
 
 impl MethodArea {
-    fn resolve_arr_class(&mut self, desc: FieldDescriptor) -> Id<Class> {
-        let name = format!("{}", desc.0);
-        let elem_ty = match desc.0 {
-            FieldType::ArrayType(arr_ty) => arr_ty.0 .0,
-            _ => panic!("tried to resolve array class with non-array descriptor"),
-        };
-
-        let id = self.class_map.get(&name).cloned();
+    pub fn resolve_arr_class(&mut self, elem_ty: &FieldType) -> ClassId {
+        let id = self.array_classes.get(&elem_ty).cloned();
         match id {
             Some(id) => id,
-            None => load_arr_class_bootstrap(self, elem_ty, &name),
+            None => load_arr_class_bootstrap(self, elem_ty.clone()),
         }
     }
 
     pub fn resolve_class(&mut self, name: &str) -> ClassId {
         if name.starts_with('[') {
             let desc = FieldDescriptor::read(name);
-            return self.resolve_arr_class(desc);
+            let elem_ty = match desc.0 {
+                FieldType::ArrayType(arr_ty) => arr_ty.0 .0,
+                _ => unreachable!(),
+            };
+            return self.resolve_arr_class(&elem_ty);
         }
 
         let id = self.class_map.get(name).cloned();
@@ -281,8 +281,8 @@ pub fn load_class_bootstrap(ma: &mut MethodArea, name: &str) -> ClassId {
     id
 }
 
-pub fn load_arr_class_bootstrap(ma: &mut MethodArea, elem_ty: FieldType, name: &str) -> ClassId {
-    let name = name.to_string();
+pub fn load_arr_class_bootstrap(ma: &mut MethodArea, elem_ty: FieldType) -> ClassId {
+    let name = format!("{}[]", elem_ty);
     let super_class_id = ma.resolve_class("java/lang/Object");
     let super_class = &ma.classes[super_class_id];
     let class = Class {
@@ -297,15 +297,15 @@ pub fn load_arr_class_bootstrap(ma: &mut MethodArea, elem_ty: FieldType, name: &
         fields: vec![],  // FIXME: this should have length
         access_flags: Default::default(),
         constant_pool: Default::default(),
-        elem_ty: Some(elem_ty),
+        elem_ty: Some(elem_ty.clone()),
         size: super_class.size,
         alignment: super_class.alignment,
     };
+    println!("Created array class: {}", name);
 
     let id = ma.classes.alloc(class);
-    ma.class_map.insert(name.clone(), id);
-
-    println!("Created array class: {}", name);
+    ma.class_map.insert(name, id);
+    ma.array_classes.insert(elem_ty, id);
 
     id
 }

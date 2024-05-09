@@ -117,7 +117,11 @@ impl Thread {
         if let Some(res) = res {
             self.operand_stack.push(res);
         }
-        println!("Returned to method with {} locals, pc:{}", self.locals.len(), self.pc);
+        println!(
+            "Returned to method with {} locals, pc:{}",
+            self.locals.len(),
+            self.pc
+        );
     }
 
     fn ensure_initialized(&mut self, class_id: ClassId) {

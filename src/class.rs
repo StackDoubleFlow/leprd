@@ -2,7 +2,7 @@ use crate::class_file::attributes::CodeAttribute;
 use crate::class_file::descriptors::{FieldDescriptor, FieldType, MethodDescriptor};
 use crate::class_file::fields;
 use crate::class_file::ConstantPool;
-use crate::class_loader::{method_area, ClassId, ClassLoader, FieldId, MethodId};
+use crate::class_loader::{method_area, ClassId, ClassLoader, FieldId, MethodArea, MethodId};
 use crate::heap::{heap, ObjectRef};
 use crate::value::Value;
 use std::collections::HashMap;
@@ -195,9 +195,42 @@ impl Class {
         obj
     }
 
+    fn of_field_ty(ma: &mut MethodArea, field_ty: FieldType) -> ClassId {
+        match field_ty {
+            FieldType::ArrayType(arr_ty) => {
+                let elem_ty = arr_ty.0 .0;
+                ma.resolve_arr_class(&elem_ty)
+            }
+            FieldType::ObjectType(obj_ty) => ma.resolve_class(&obj_ty.class_name),
+            _ => todo!(),
+        }
+    }
+
     pub fn instance_of(this: ClassId, of: ClassId) -> bool {
-        // TODO: instanceof array types
-        let ma = method_area();
+        let mut ma = method_area();
+
+        if let Some(this_elem_ty) = &ma.classes[this].elem_ty {
+            if let Some(of_elem_ty) = &ma.classes[of].elem_ty {
+                return match (this_elem_ty, of_elem_ty) {
+                    (FieldType::BaseType(this_prim), FieldType::BaseType(of_prim)) => {
+                        this_prim == of_prim
+                    }
+                    _ => {
+                        // FIXME: how do I get rid of these clones?
+                        let this_elem_ty = this_elem_ty.clone();
+                        let of_elem_ty = this_elem_ty.clone();
+                        Self::instance_of(
+                            Self::of_field_ty(&mut ma, this_elem_ty),
+                            Self::of_field_ty(&mut ma, of_elem_ty),
+                        )
+                    }
+                };
+            } else {
+                // TODO: also check if `of` is one of the interfaces implemented by array (JLS 4.10.3)
+                return of == ma.resolve_class("java/lang/Object");
+            }
+        }
+
         let mut cur_class = this;
         loop {
             let class = &ma.classes[cur_class];

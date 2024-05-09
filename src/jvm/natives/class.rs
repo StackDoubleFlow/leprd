@@ -42,6 +42,22 @@ pub fn get_primitive_class(thread: &mut Thread) {
         .push(Value::Object(Some(Class::obj(*class))));
 }
 
+pub fn is_primitive(thread: &mut Thread) {
+    let Some(class_obj) = thread.pop().object() else {
+        panic!("NullPointerException");
+    };
+    let class = method_area().class_objs[&class_obj];
+
+    let primitive_classes = PRIMITIVE_CLASSES.lock().unwrap();
+    let is_primitive = primitive_classes
+        .values()
+        .find(|&&primitive_class| primitive_class == class)
+        .is_some();
+
+    // boolean type
+    thread.operand_stack.push(Value::Int(is_primitive as i32));
+}
+
 pub fn init_class_name(thread: &mut Thread) {
     let Some(class_class_obj) = thread.pop().object() else {
         panic!("NullPointerException");

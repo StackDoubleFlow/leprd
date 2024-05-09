@@ -25,6 +25,7 @@ pub fn run_native(thread: &mut Thread, class: String, method: String) {
         ("java/lang/Object", "hashCode") => object::hash_code(thread),
         ("java/lang/Class", "desiredAssertionStatus0") => class::desired_assertion_status(thread),
         ("java/lang/Class", "getPrimitiveClass") => class::get_primitive_class(thread),
+        ("java/lang/Class", "isPrimitive") => class::is_primitive(thread),
         ("java/lang/Class", "initClassName") => class::init_class_name(thread),
         ("java/lang/StringUTF16", "isBigEndian") => string::is_big_endian(thread),
         ("java/lang/Float", "intBitsToFloat") => float::int_bits_to_float(thread),

@@ -570,18 +570,23 @@ impl Thread {
                 192 => {
                     let val = self.pop();
                     let cp_idx = self.read_u16();
-                    let obj = match val {
-                        Value::Object(Some(obj)) => obj,
-                        Value::Object(None) => {
-                            self.operand_stack.push(val);
-                            continue;
-                        }
-                        a => unreachable!("{a:?}"),
-                    };
-                    let obj_class = heap().get_obj_class(obj);
+                    if matches!(val, Value::Object(None) | Value::Array(None)) {
+                        self.operand_stack.push(val);
+                        continue;
+                    }
 
                     let class_id = self.class_id();
                     let ref_class = Class::class_reference(class_id, cp_idx);
+
+                    let obj_class = match val {
+                        Value::Object(Some(obj)) => heap().get_obj_class(obj),
+                        Value::Array(Some(arr)) => {
+                            let heap = heap();
+                            let elem_ty = heap.arr_ty(arr);
+                            method_area().resolve_arr_class(elem_ty)
+                        }
+                        a => unreachable!("{a:?}"),
+                    };
 
                     let instance_of = Class::instance_of(obj_class, ref_class);
                     if !instance_of {
