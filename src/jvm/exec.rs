@@ -290,10 +290,12 @@ impl Thread {
                 125 => binary_op!(self, (lhs, rhs) => lhs.ushr(rhs)),
                 // iand
                 126 => binary_op!(self, &),
-                // ior
-                128 => binary_op!(self, |),
                 // land
                 127 => binary_op!(self, &),
+                // ior
+                128 => binary_op!(self, |),
+                // lor
+                129 => binary_op!(self, |),
                 // ixor
                 130 => binary_op!(self, ^),
                 // lxor
@@ -332,7 +334,7 @@ impl Thread {
                 // d2f
                 144 => cast!(self, Double, Float, val -> val as f32),
                 // i2b
-                145 => cast!(self, Float, Int, val -> val as i32),
+                145 => cast!(self, Int, Int, val -> (val as i8) as i32),
                 // i2c
                 146 => cast!(self, Int, Int, val -> val & 0xFF),
                 // i2s
