@@ -228,6 +228,70 @@ impl Thread {
                     let val = *self.operand_stack.last().unwrap();
                     self.operand_stack.insert(self.operand_stack.len() - 2, val);
                 }
+                // dup_x2
+                91 => {
+                    let val = *self.operand_stack.last().unwrap();
+                    if (self.operand_stack[self.operand_stack.len() - 2]).is_cat_2() {
+                        self.operand_stack.insert(self.operand_stack.len() - 2, val);
+                    } else {
+                        self.operand_stack.insert(self.operand_stack.len() - 3, val);
+                    }
+                }
+                // dup2
+                92 => {
+                    let val1 = *self.operand_stack.last().unwrap();
+                    if val1.is_cat_2() {
+                        self.operand_stack.push(val1);
+                    } else {
+                        self.operand_stack.push(self.operand_stack[self.operand_stack.len() - 2]);
+                        self.operand_stack.push(val1);
+                    }
+                }
+                // dup2_x1
+                93 => {
+                    let val1 = *self.operand_stack.last().unwrap();
+                    let val2 = self.operand_stack[self.operand_stack.len() - 2];
+                    assert!(!val2.is_cat_2());
+                    if val1.is_cat_2() {
+                        self.operand_stack.insert(self.operand_stack.len() - 2, val1);
+                    } else {
+                        let dest = self.operand_stack.len() - 3;
+                        self.operand_stack.splice(dest..dest, [val2, val1]);
+                    }
+                }
+                // dup2_x2
+                94 => {
+                    let val1 = *self.operand_stack.last().unwrap();
+                    let val2 = self.operand_stack[self.operand_stack.len() - 2];
+                    let val3 = self.operand_stack[self.operand_stack.len() - 3];
+                    let dest = if val1.is_cat_2() && val2.is_cat_2() {
+                        // take one, insert 2 values down
+                        self.operand_stack.len() - 2
+                    } else if val1.is_cat_2() && !val2.is_cat_2() && !val3.is_cat_2() {
+                        // take one, insert 4 values down
+                        self.operand_stack.len() - 4
+                    } else if !val1.is_cat_2() && !val2.is_cat_2() && val3.is_cat_2() {
+                        // take two, insert 3 values down
+                        self.operand_stack.len() - 3
+                    } else if !val1.is_cat_2() && !val2.is_cat_2() && !val3.is_cat_2() {
+                        // take two, insert 4 values down
+                        self.operand_stack.len() - 3
+                    } else {
+                        panic!("invalid dup2_x2");
+                    };
+                    if val1.is_cat_2() {
+                        // take one
+                        self.operand_stack.insert(dest, val1);
+                    } else {
+                        // take two
+                        self.operand_stack.splice(dest..dest, [val2, val1]);
+                    }
+                }
+                // swap
+                95 => {
+                    let val = self.pop();
+                    self.operand_stack.insert(self.operand_stack.len() - 1, val);
+                }
                 // iadd
                 96 => binary_op!(self, +),
                 // ladd

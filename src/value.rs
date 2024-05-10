@@ -225,4 +225,8 @@ impl Value {
     pub fn array(self) -> Option<ArrayRef> {
         unwrap_val!(Array, self)
     }
+
+    pub fn is_cat_2(self) -> bool {
+        matches!(self, Value::Long(_) | Value::Double(_))
+    }
 }
