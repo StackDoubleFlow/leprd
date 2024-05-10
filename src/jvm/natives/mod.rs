@@ -46,6 +46,14 @@ pub fn run_native(thread: &mut Thread, class: String, method: String) {
         ("jdk/internal/misc/Unsafe", "objectFieldOffset1") => {
             jdk_unsafe::object_field_offset(thread)
         }
+        ("jdk/internal/misc/Unsafe", "fullFence") => jdk_unsafe::full_fence(thread),
+        ("jdk/internal/misc/Unsafe", "compareAndSetReference") => jdk_unsafe::compare_and_set_reference(thread),
+        ("jdk/internal/misc/Unsafe", "getReferenceVolatile") => jdk_unsafe::get_reference_volatile(thread),
+        ("jdk/internal/misc/Unsafe", "putReferenceVolatile") => jdk_unsafe::put_reference_volatile(thread),
+        ("jdk/internal/misc/Unsafe", "compareAndSetInt") => jdk_unsafe::compare_and_set_int(thread),
+        ("jdk/internal/misc/Unsafe", "compareAndExchangeInt") => jdk_unsafe::compare_and_exchange_int(thread),
+        ("jdk/internal/misc/Unsafe", "compareAndSetLong") => jdk_unsafe::compare_and_set_long(thread),
+        ("jdk/internal/misc/Unsafe", "compareAndExchangeLong") => jdk_unsafe::compare_and_exchange_long(thread),
         ("jdk/internal/reflect/Reflection", "getCallerClass") => {
             reflection::get_caller_class(thread)
         }

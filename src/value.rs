@@ -177,7 +177,7 @@ macro_rules! unwrap_val {
     ($value_type:ident, $expr:expr) => {
         match ($expr) {
             Value::$value_type(x) => x,
-            _ => panic!("Unwrapped value with incorrect type"),
+            v => panic!("Unwrapped value with incorrect type: {:?}", v),
         }
     };
 }
@@ -216,7 +216,10 @@ impl Value {
     }
 
     pub fn object(self) -> Option<ObjectRef> {
-        unwrap_val!(Object, self)
+        match self {
+            Value::Array(arr_ref) => arr_ref.map(|arr| arr.cast_to_object()),
+            _ => unwrap_val!(Object, self),
+        }
     }
 
     pub fn array(self) -> Option<ArrayRef> {

@@ -74,11 +74,11 @@ unsafe fn load_value(ptr: *const u8, ty: &FieldType) -> Value {
         },
         FieldType::ArrayType(_) => {
             let arr_ptr = ptr.cast::<*mut Array>().read();
-            Value::Array((!arr_ptr.is_null()).then_some(ArrayRef(arr_ptr)))
+            Value::Array(ArrayRef::from_ptr(arr_ptr))
         }
         FieldType::ObjectType(_) => {
             let obj_ptr = ptr.cast::<*mut Object>().read();
-            Value::Object((!obj_ptr.is_null()).then_some(ObjectRef(obj_ptr)))
+            Value::Object(ObjectRef::from_ptr(obj_ptr))
         }
     }
 }
@@ -275,6 +275,16 @@ impl Heap {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct ObjectRef(*mut Object);
 
+impl ObjectRef {
+    pub fn inner_ptr(self) -> *mut Object {
+        self.0
+    }
+
+    pub unsafe fn from_ptr(ptr: *mut Object) -> Option<ObjectRef> {
+        (!ptr.is_null()).then_some(ObjectRef(ptr))
+    }
+}
+
 unsafe impl Send for ObjectRef {}
 unsafe impl Sync for ObjectRef {}
 
@@ -283,6 +293,20 @@ unsafe impl Sync for ObjectRef {}
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct ArrayRef(*mut Array);
+
+impl ArrayRef {
+    pub unsafe fn inner_ptr(self) -> *mut Array {
+        self.0
+    }
+
+    pub unsafe fn from_ptr(ptr: *mut Array) -> Option<ArrayRef> {
+        (!ptr.is_null()).then_some(ArrayRef(ptr))
+    }
+
+    pub fn cast_to_object(self) -> ObjectRef {
+        ObjectRef(self.0.cast::<Object>())
+    }
+}
 
 unsafe impl Send for ArrayRef {}
 unsafe impl Sync for ArrayRef {}
