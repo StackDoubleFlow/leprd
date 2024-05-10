@@ -18,9 +18,11 @@ pub fn run_native(thread: &mut Thread, class: String, method: String) {
         ("jdk/internal/misc/Unsafe", "registerNatives") => {
             println!("stub: native Unsafe.registerNatives")
         }
+        ("jdk/internal/misc/VM", "initialize") => println!("stub: native VM.initialize"),
 
         ("java/lang/System", "arraycopy") => system::arraycopy(thread),
         ("java/lang/Runtime", "availableProcessors") => runtime::available_processors(thread),
+        ("java/lang/Runtime", "maxMemory") => runtime::max_memory(thread),
         ("java/lang/Object", "getClass") => object::get_class(thread),
         ("java/lang/Object", "hashCode") => object::hash_code(thread),
         ("java/lang/Class", "desiredAssertionStatus0") => class::desired_assertion_status(thread),
