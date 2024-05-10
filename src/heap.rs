@@ -151,10 +151,10 @@ impl Heap {
     ) {
         unsafe {
             let src_arr = &*src_ref.0;
-            let dst_arr = &*src_ref.0;
+            let dst_arr = &*dst_ref.0;
             assert_eq!(src_arr.ty, dst_arr.ty);
-            assert!(src_idx + len < src_arr.len);
-            assert!(dst_idx + len < dst_arr.len);
+            assert!(src_idx + len <= src_arr.len);
+            assert!(dst_idx + len <= dst_arr.len);
 
             let elem_layout = layout_for_field(&src_arr.ty);
             let (span_layout, stride) = elem_layout.repeat(len).unwrap();

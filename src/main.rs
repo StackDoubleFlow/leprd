@@ -34,6 +34,7 @@ fn main() {
     );
     drop(ma);
     let mut thread = Thread::new(init_phase_1);
+    // let mut thread = Thread::new(method);
     println!("running thread");
     thread.run();
 }
