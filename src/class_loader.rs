@@ -154,7 +154,7 @@ pub fn load_class_bootstrap(ma: &mut MethodArea, name: &str) -> ClassId {
         .1;
 
     assert!(class_file.magic == 0xCAFEBABE);
-    assert!((45..62).contains(&class_file.major_version));
+    assert!((45..=66).contains(&class_file.major_version));
 
     let super_class_id = if class_file.super_class > 0 {
         let super_name = class_file.constant_pool.class_name(class_file.super_class);
