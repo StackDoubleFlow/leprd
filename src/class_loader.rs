@@ -154,6 +154,7 @@ pub fn load_class_bootstrap(ma: &mut MethodArea, name: &str) -> ClassId {
         .1;
 
     assert!(class_file.magic == 0xCAFEBABE);
+    // Major version 66 corresponds to Java 22
     assert!((45..=66).contains(&class_file.major_version));
 
     let super_class_id = if class_file.super_class > 0 {

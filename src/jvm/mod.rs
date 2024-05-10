@@ -51,6 +51,19 @@ impl Thread {
         (self.read_ins() as u16) << 8 | self.read_ins() as u16
     }
 
+    fn read_i32(&mut self) -> i32 {
+        (self.read_ins() as i32) << 24
+        | (self.read_ins() as i32) << 16
+        | (self.read_ins() as i32) << 8
+        | self.read_ins() as i32
+    }
+
+    fn pad_to_int(&mut self) {
+        if self.pc & 0b11 != 0 {
+            self.pc += 4 - (self.pc & 0b11);
+        }
+    }
+
     // fn pop_u16(&mut self) -> u16 {
     //     (self.operand_stack.pop().unwrap() as u16) << 8 | self.operand_stack.pop().unwrap() as
     // u16 }

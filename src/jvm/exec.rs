@@ -66,7 +66,7 @@ impl Thread {
     }
 
     pub fn run(&mut self) -> Option<Value> {
-        loop {
+        'inst: loop {
             let cur_pc = self.pc;
             let opcode = self.read_ins();
             let c = self.class_id();
@@ -414,6 +414,41 @@ impl Thread {
                 }
                 // goto
                 167 => self.br_if(cur_pc, true),
+                // tableswitch
+                170 => {
+                    let base_pc = self.pc - 1;
+                    let idx = self.pop().int();
+                    self.pad_to_int();
+                    let default = self.read_i32();
+                    let low = self.read_i32();
+                    let high = self.read_i32();
+
+                    if idx < low || idx > high {
+                        self.pc = base_pc.saturating_add_signed(default as isize);
+                        continue;
+                    }
+
+                    self.pc += 4 * (idx - low) as usize;
+                    let offset = self.read_i32();
+                    self.pc = base_pc.saturating_add_signed(offset as isize);
+                }
+                // lookupswitch
+                171 => {
+                    let base_pc = self.pc - 1;
+                    let key = self.pop().int();
+                    self.pad_to_int();
+                    let default = self.read_i32();
+                    let num_pairs = self.read_i32();
+                    for _ in 0..num_pairs {
+                        let m = self.read_i32();
+                        let offset = self.read_i32();
+                        if key == m {
+                            self.pc = base_pc.saturating_add_signed(offset as isize);
+                            continue 'inst;
+                        }
+                    }
+                    self.pc = base_pc.saturating_add_signed(default as isize);
+                }
                 // ireturn
                 172 => return self.operand_stack.pop(),
                 // lreturn
@@ -596,17 +631,23 @@ impl Thread {
                 }
                 // instanceof
                 193 => {
-                    let obj = self.pop().object();
+                    let val = self.pop();
                     let cp_idx = self.read_u16();
 
-                    let obj = match obj {
-                        Some(obj) => obj,
-                        None => {
-                            self.operand_stack.push(Value::Int(0));
-                            continue;
+                    if matches!(val, Value::Object(None) | Value::Array(None)) {
+                        self.operand_stack.push(Value::Int(0));
+                        continue;
+                    }
+
+                    let obj_class = match val {
+                        Value::Object(Some(obj)) => heap().get_obj_class(obj),
+                        Value::Array(Some(arr)) => {
+                            let heap = heap();
+                            let elem_ty = heap.arr_ty(arr);
+                            method_area().resolve_arr_class(elem_ty)
                         }
+                        a => unreachable!("{a:?}"),
                     };
-                    let obj_class = heap().get_obj_class(obj);
 
                     let class_id = self.class_id();
                     let ref_class = Class::class_reference(class_id, cp_idx);
