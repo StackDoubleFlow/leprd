@@ -8,6 +8,7 @@ mod runtime;
 mod string;
 mod system;
 mod system_props;
+mod throwable;
 
 use super::Thread;
 
@@ -34,6 +35,7 @@ pub fn run_native(thread: &mut Thread, class: String, method: String) {
         ("java/lang/Float", "floatToRawIntBits") => float::float_to_int_bits(thread),
         ("java/lang/Double", "longBitsToDouble") => float::long_bits_to_double(thread),
         ("java/lang/Double", "doubleToRawLongBits") => float::double_to_long_bits(thread),
+        ("java/lang/Throwable", "fillInStackTrace") => throwable::fill_in_stack_trace(thread),
         ("jdk/internal/misc/CDS", "isDumpingClassList0") => cds::is_dumping_class_list(thread),
         ("jdk/internal/misc/CDS", "isDumpingArchive0") => cds::is_dumping_archive(thread),
         ("jdk/internal/misc/CDS", "isSharingEnabled0") => cds::is_sharing_enabled(thread),
