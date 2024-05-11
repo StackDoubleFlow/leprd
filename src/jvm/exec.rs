@@ -243,7 +243,8 @@ impl Thread {
                     if val1.is_cat_2() {
                         self.operand_stack.push(val1);
                     } else {
-                        self.operand_stack.push(self.operand_stack[self.operand_stack.len() - 2]);
+                        self.operand_stack
+                            .push(self.operand_stack[self.operand_stack.len() - 2]);
                         self.operand_stack.push(val1);
                     }
                 }
@@ -253,7 +254,8 @@ impl Thread {
                     let val2 = self.operand_stack[self.operand_stack.len() - 2];
                     assert!(!val2.is_cat_2());
                     if val1.is_cat_2() {
-                        self.operand_stack.insert(self.operand_stack.len() - 2, val1);
+                        self.operand_stack
+                            .insert(self.operand_stack.len() - 2, val1);
                     } else {
                         let dest = self.operand_stack.len() - 3;
                         self.operand_stack.splice(dest..dest, [val2, val1]);

@@ -1,9 +1,9 @@
-use std::sync::atomic::{fence, AtomicI32, AtomicI64, AtomicPtr, Ordering};
 use crate::class::FieldBacking;
 use crate::class_loader::method_area;
 use crate::heap::{arr_layout, heap, Object, ObjectRef};
 use crate::jvm::Thread;
 use crate::value::Value;
+use std::sync::atomic::{fence, AtomicI32, AtomicI64, AtomicPtr, Ordering};
 
 fn arr_class_layout(thread: &mut Thread) -> (usize, usize) {
     let Some(arr_class_obj) = thread.pop().object() else {
@@ -93,8 +93,22 @@ macro_rules! cas {
     };
 }
 
-cas!(compare_and_exchange_int, compare_and_set_int, int, i32, Int, AtomicI32);
-cas!(compare_and_exchange_long, compare_and_set_long, long, i64, Long, AtomicI64);
+cas!(
+    compare_and_exchange_int,
+    compare_and_set_int,
+    int,
+    i32,
+    Int,
+    AtomicI32
+);
+cas!(
+    compare_and_exchange_long,
+    compare_and_set_long,
+    long,
+    i64,
+    Long,
+    AtomicI64
+);
 
 fn object_ptr(op: Option<ObjectRef>) -> *mut Object {
     match op {
@@ -112,7 +126,10 @@ pub fn compare_and_set_reference(thread: &mut Thread) {
     };
 
     let atomic = unsafe {
-        let ptr = obj_ref.inner_ptr().cast::<*mut Object>().byte_offset(offset);
+        let ptr = obj_ref
+            .inner_ptr()
+            .cast::<*mut Object>()
+            .byte_offset(offset);
         AtomicPtr::from_ptr(ptr)
     };
     let res = atomic.compare_exchange(expected, x, Ordering::SeqCst, Ordering::SeqCst);
@@ -126,7 +143,10 @@ pub fn get_reference_volatile(thread: &mut Thread) {
     };
 
     let val = unsafe {
-        let ptr = obj_ref.inner_ptr().cast::<*mut Object>().byte_offset(offset);
+        let ptr = obj_ref
+            .inner_ptr()
+            .cast::<*mut Object>()
+            .byte_offset(offset);
         ObjectRef::from_ptr(ptr.read_volatile())
     };
 
@@ -142,7 +162,10 @@ pub fn put_reference_volatile(thread: &mut Thread) {
 
     unsafe {
         let val = object_ptr(x);
-        let ptr = obj_ref.inner_ptr().cast::<*mut Object>().byte_offset(offset);
+        let ptr = obj_ref
+            .inner_ptr()
+            .cast::<*mut Object>()
+            .byte_offset(offset);
         ptr.write_volatile(val);
     }
 }

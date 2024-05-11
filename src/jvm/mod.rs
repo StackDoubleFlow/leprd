@@ -53,9 +53,9 @@ impl Thread {
 
     fn read_i32(&mut self) -> i32 {
         (self.read_ins() as i32) << 24
-        | (self.read_ins() as i32) << 16
-        | (self.read_ins() as i32) << 8
-        | self.read_ins() as i32
+            | (self.read_ins() as i32) << 16
+            | (self.read_ins() as i32) << 8
+            | self.read_ins() as i32
     }
 
     fn pad_to_int(&mut self) {
@@ -183,7 +183,9 @@ impl Thread {
     }
 
     fn pop(&mut self) -> Value {
-        self.operand_stack.pop().expect("tried to pop value off of operand stack while stack is empty")
+        self.operand_stack
+            .pop()
+            .expect("tried to pop value off of operand stack while stack is empty")
     }
 
     fn arr_load(&mut self) -> Value {
