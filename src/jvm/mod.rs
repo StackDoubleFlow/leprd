@@ -64,10 +64,6 @@ impl Thread {
         }
     }
 
-    // fn pop_u16(&mut self) -> u16 {
-    //     (self.operand_stack.pop().unwrap() as u16) << 8 | self.operand_stack.pop().unwrap() as
-    // u16 }
-
     fn class_id(&self) -> ClassId {
         method_area().methods[self.method].defining_class
     }
@@ -187,7 +183,7 @@ impl Thread {
     }
 
     fn pop(&mut self) -> Value {
-        self.operand_stack.pop().unwrap()
+        self.operand_stack.pop().expect("tried to pop value off of operand stack while stack is empty")
     }
 
     fn arr_load(&mut self) -> Value {

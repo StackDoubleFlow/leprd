@@ -167,33 +167,33 @@ impl Thread {
                 // istore, lstore, fstore, dstore, astore
                 54..=58 => {
                     let idx = self.read_ins() as usize;
-                    self.locals[idx] = Some(self.operand_stack.pop().unwrap());
+                    self.locals[idx] = Some(self.pop());
                 }
                 // istore_<n>
-                59 => self.locals[0] = Some(self.operand_stack.pop().unwrap()),
-                60 => self.locals[1] = Some(self.operand_stack.pop().unwrap()),
-                61 => self.locals[2] = Some(self.operand_stack.pop().unwrap()),
-                62 => self.locals[3] = Some(self.operand_stack.pop().unwrap()),
+                59 => self.locals[0] = Some(self.pop()),
+                60 => self.locals[1] = Some(self.pop()),
+                61 => self.locals[2] = Some(self.pop()),
+                62 => self.locals[3] = Some(self.pop()),
                 // lstore_<n>
-                63 => self.locals[0] = Some(self.operand_stack.pop().unwrap()),
-                64 => self.locals[1] = Some(self.operand_stack.pop().unwrap()),
-                65 => self.locals[2] = Some(self.operand_stack.pop().unwrap()),
-                66 => self.locals[3] = Some(self.operand_stack.pop().unwrap()),
+                63 => self.locals[0] = Some(self.pop()),
+                64 => self.locals[1] = Some(self.pop()),
+                65 => self.locals[2] = Some(self.pop()),
+                66 => self.locals[3] = Some(self.pop()),
                 // fstore_<n>
-                67 => self.locals[0] = Some(self.operand_stack.pop().unwrap()),
-                68 => self.locals[1] = Some(self.operand_stack.pop().unwrap()),
-                69 => self.locals[2] = Some(self.operand_stack.pop().unwrap()),
-                70 => self.locals[3] = Some(self.operand_stack.pop().unwrap()),
+                67 => self.locals[0] = Some(self.pop()),
+                68 => self.locals[1] = Some(self.pop()),
+                69 => self.locals[2] = Some(self.pop()),
+                70 => self.locals[3] = Some(self.pop()),
                 // dstore_<n>
-                71 => self.locals[0] = Some(self.operand_stack.pop().unwrap()),
-                72 => self.locals[1] = Some(self.operand_stack.pop().unwrap()),
-                73 => self.locals[2] = Some(self.operand_stack.pop().unwrap()),
-                74 => self.locals[3] = Some(self.operand_stack.pop().unwrap()),
+                71 => self.locals[0] = Some(self.pop()),
+                72 => self.locals[1] = Some(self.pop()),
+                73 => self.locals[2] = Some(self.pop()),
+                74 => self.locals[3] = Some(self.pop()),
                 // astore_<n>
-                75 => self.locals[0] = Some(self.operand_stack.pop().unwrap()),
-                76 => self.locals[1] = Some(self.operand_stack.pop().unwrap()),
-                77 => self.locals[2] = Some(self.operand_stack.pop().unwrap()),
-                78 => self.locals[3] = Some(self.operand_stack.pop().unwrap()),
+                75 => self.locals[0] = Some(self.pop()),
+                76 => self.locals[1] = Some(self.pop()),
+                77 => self.locals[2] = Some(self.pop()),
+                78 => self.locals[3] = Some(self.pop()),
                 // iastore, lastore, fastore, dastore, aastore
                 79..=83 => {
                     let val = self.pop();
@@ -216,7 +216,7 @@ impl Thread {
                 }
                 // pop
                 87 => {
-                    let _ = self.operand_stack.pop();
+                    let _ = self.pop();
                 }
                 // dup
                 89 => {
@@ -542,7 +542,7 @@ impl Thread {
                     let field = Class::field_reference(class_id, idx);
                     let defining_class = method_area().fields[field].defining_class;
                     self.ensure_initialized(defining_class);
-                    method_area().fields[field].store_static(self.operand_stack.pop().unwrap());
+                    method_area().fields[field].store_static(self.pop());
                 }
                 // getfield
                 180 => {
@@ -620,10 +620,7 @@ impl Thread {
                 // newarray
                 188 => {
                     let atype = self.read_ins();
-                    let count = match self.operand_stack.pop().unwrap() {
-                        Value::Int(val) => val,
-                        _ => panic!("array count must be int"),
-                    };
+                    let count = self.pop().int();
                     assert!(count >= 0, "NegativeArraySizeException");
                     let ty = match atype {
                         4 => FieldType::BaseType(BaseType::Z),
@@ -645,10 +642,7 @@ impl Thread {
                     let class_id = self.class_id();
                     let item_class = Class::class_reference(class_id, idx);
                     let class_name = method_area().classes[item_class].name.clone();
-                    let count = match self.operand_stack.pop().unwrap() {
-                        Value::Int(val) => val,
-                        _ => panic!("array count must be int"),
-                    };
+                    let count = self.pop().int();
                     assert!(count >= 0, "NegativeArraySizeException");
 
                     let ty = FieldType::ObjectType(ObjectType { class_name });
@@ -657,10 +651,9 @@ impl Thread {
                 }
                 // arraylength
                 190 => {
-                    let arr = match self.operand_stack.pop() {
-                        Some(Value::Array(Some(arr))) => arr,
-                        Some(Value::Array(None)) => panic!("NullPointerException"),
-                        _ => panic!(),
+                    let arr = match self.pop().array() {
+                        Some(arr) => arr,
+                        None => panic!("NullPointerException"),
                     };
                     let len = heap().arr_len(arr) as i32;
                     self.operand_stack.push(Value::Int(len));
