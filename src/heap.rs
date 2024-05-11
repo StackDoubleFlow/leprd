@@ -111,7 +111,7 @@ impl Heap {
         let (layout, offset, _) = arr_layout(&elem_ty, len);
 
         let array = Array {
-            obj: Object {
+            _obj: Object {
                 class: method_area().resolve_arr_class(&elem_ty),
             },
             ty: elem_ty,
@@ -319,7 +319,7 @@ pub struct Object {
 #[derive(Debug)]
 pub struct Array {
     // Having Object as the first field allows us to cast array pointers to object pointers
-    obj: Object,
+    _obj: Object,
     ty: FieldType,
     len: usize,
     offset: usize,

@@ -1,5 +1,5 @@
 use crate::class::Class;
-use crate::class_loader::{method_area, MethodArea};
+use crate::class_loader::method_area;
 use crate::jvm::Thread;
 use crate::value::Value;
 
