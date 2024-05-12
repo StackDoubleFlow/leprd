@@ -14,6 +14,7 @@ pub fn vm_properties(thread: &mut Thread) {
         };
     }
 
+    // See: https://docs.oracle.com/en/java/javase/22/docs/api/java.base/java/lang/System.html#getProperties()
     prop!("java.version", "22");
     prop!("java.vendor", "StackDoubleFlow");
     prop!("java.vendor.url", "https://stackdoubleflow.net/");
@@ -27,6 +28,16 @@ pub fn vm_properties(thread: &mut Thread) {
     prop!("java.specification.version", "22");
     prop!("java.specification.vendor", "Oracle");
     prop!("java.specification.name", "Java Platform API Specification");
+    prop!("java.io.tmpdir", std::env::temp_dir().to_string_lossy());
+    prop!("os.name", whoami::platform());
+    prop!("os.arch", whoami::arch());
+    prop!("os.version", whoami::distro());
+    prop!("user.name", whoami::username());
+    prop!("user.home", dirs::home_dir().unwrap().to_string_lossy());
+    prop!("user.dir", std::env::current_dir().unwrap().to_string_lossy());
+    prop!("native.encoding", "UTF-8");
+    prop!("stdout.encoding", "UTF-8");
+    prop!("stderr.encoding", "UTF-8");
 
     let props: Vec<_> = props.into_iter().map(|prop| thread.create_string(&prop)).collect();
 
