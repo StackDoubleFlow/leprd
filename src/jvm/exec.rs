@@ -660,6 +660,26 @@ impl Thread {
                     let len = heap().arr_len(arr) as i32;
                     self.operand_stack.push(Value::Int(len));
                 }
+                // athrow
+                191 => {
+                    let Some(throwable_obj) = self.pop().object() else {
+                        panic!("NullPointerException");
+                    };
+                    let class_id = heap().get_obj_class(throwable_obj);
+                    println!("An exception was thrown: {}", method_area().classes[class_id].name);
+
+                    let mut ma = method_area();
+                    let throwable_class = ma.resolve_class("java/lang/Throwable");
+                    let details_field = ma.resolve_field(throwable_class, "detailMessage");
+                    drop(ma);
+                    let details = heap().load_field(throwable_obj, details_field).object();
+                    if let Some(details) = details {
+                        let details = heap().read_string(details);
+                        println!("The following details were given: {}", details);
+                    }
+
+                    panic!("todo: exceptions");
+                }
                 // checkcast
                 192 => {
                     let val = self.pop();
