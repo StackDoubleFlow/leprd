@@ -47,7 +47,7 @@ impl Field {
     }
 
     pub fn is_static(&self) -> bool {
-        self.access_flags & fields::acc::STATIC == 0
+        self.access_flags & fields::acc::STATIC != 0
     }
 }
 

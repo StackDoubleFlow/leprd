@@ -196,6 +196,12 @@ impl Thread {
         heap().load_arr_elem(arr, idx)
     }
 
+    // Only used for debugging
+    #[allow(dead_code)]
+    fn debug_value(&mut self, val: Value) {
+        println!("{:?}", ValueDebugger(val));
+    }
+
     /// For method selection in invokeinterface and invokevirtual instructions
     fn select_method(&mut self, method_id: MethodId) -> MethodId {
         let ma = method_area();
@@ -235,6 +241,42 @@ impl Thread {
             let method = &ma.methods[frame.method];
             let class = &ma.classes[method.defining_class];
             println!("  {}: {}::{}", idx, class.name, method.name);
+        }
+    }
+}
+
+/// This is a different, more detailed, Debug impl for Value
+struct ValueDebugger(Value);
+
+impl std::fmt::Debug for ValueDebugger {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self.0 {
+            Value::Object(Some(obj)) => {
+                let class_id = heap().get_obj_class(obj);
+                let name = method_area().classes[class_id].name.replace('/', ".");
+                let mut dbg = f.debug_struct(&name);
+
+                let mut cur_class = class_id;
+                loop {
+                    let fields = method_area().classes[cur_class].fields.clone();
+                    for field in fields {
+                        if method_area().fields[field].is_static() {
+                            continue;
+                        }
+                        let name = method_area().fields[field].name.clone();
+                        let val = heap().load_field(obj, field).clone();
+                        dbg.field(&name, &ValueDebugger(val));
+                    }
+                    match method_area().classes[cur_class].super_class {
+                        Some(s) => cur_class = s,
+                        None => break,
+                    }
+                }
+
+                dbg.finish()
+            },
+            Value::Object(None) | Value::Array(None) => write!(f, "null"),
+            _ => write!(f, "{:?}", self.0),
         }
     }
 }

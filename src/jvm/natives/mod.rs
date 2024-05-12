@@ -9,6 +9,7 @@ mod string;
 mod system;
 mod system_props;
 mod throwable;
+mod file_descriptor;
 
 use super::Thread;
 
@@ -20,8 +21,14 @@ pub fn run_native(thread: &mut Thread, class: String, method: String) {
             println!("stub: native Unsafe.registerNatives")
         }
         ("jdk/internal/misc/VM", "initialize") => println!("stub: native VM.initialize"),
+        ("java/io/FileInputStream", "initIDs") => println!("stub: native java.io.FileInputStream.initIDs"),
+        ("java/io/FileOutputStream", "initIDs") => println!("stub: native java.io.FileInputStream.initIDs"),
+        ("java/io/FileDescriptor", "initIDs") => println!("stub: native java.io.FileInputStream.initIDs"),
 
         ("java/lang/System", "arraycopy") => system::arraycopy(thread),
+        ("java/lang/System", "setIn0") => system::set_in(thread),
+        ("java/lang/System", "setOut0") => system::set_out(thread),
+        ("java/lang/System", "setErr0") => system::set_err(thread),
         ("java/lang/Runtime", "availableProcessors") => runtime::available_processors(thread),
         ("java/lang/Runtime", "maxMemory") => runtime::max_memory(thread),
         ("java/lang/Object", "getClass") => object::get_class(thread),
@@ -36,6 +43,8 @@ pub fn run_native(thread: &mut Thread, class: String, method: String) {
         ("java/lang/Double", "longBitsToDouble") => float::long_bits_to_double(thread),
         ("java/lang/Double", "doubleToRawLongBits") => float::double_to_long_bits(thread),
         ("java/lang/Throwable", "fillInStackTrace") => throwable::fill_in_stack_trace(thread),
+        ("java/io/FileDescriptor", "getHandle") => file_descriptor::get_handle(thread),
+        ("java/io/FileDescriptor", "getAppend") => file_descriptor::get_append(thread),
         ("jdk/internal/misc/CDS", "isDumpingClassList0") => cds::is_dumping_class_list(thread),
         ("jdk/internal/misc/CDS", "isDumpingArchive0") => cds::is_dumping_archive(thread),
         ("jdk/internal/misc/CDS", "isSharingEnabled0") => cds::is_sharing_enabled(thread),

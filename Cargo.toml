@@ -12,3 +12,4 @@ id-arena = "2"
 byteorder = "1"
 dirs = "5.0"
 whoami = "1.5"
+nix = { version = "0.28", features = ["fs"] }
