@@ -2,7 +2,7 @@ use crate::class::FieldBacking;
 use crate::class_file::descriptors::{BaseType, FieldType};
 use crate::class_loader::{method_area, ClassId, FieldId};
 use crate::value::{MatchesFieldType, Value};
-use std::alloc::{alloc_zeroed, Layout};
+use std::alloc::{alloc, alloc_zeroed, Layout};
 use std::sync::{LazyLock, Mutex, MutexGuard};
 
 static HEAP: LazyLock<Mutex<Heap>> = LazyLock::new(Default::default);
@@ -100,6 +100,30 @@ impl Heap {
             let ptr = alloc_zeroed(layout).cast::<Object>();
             (*ptr) = object;
             ptr
+        };
+
+        let obj_ref = ObjectRef(object_ptr);
+        self.objects.push(obj_ref);
+        obj_ref
+    }
+
+    pub fn clone_object(&mut self, obj_ref: ObjectRef) -> ObjectRef {
+        let ma = method_area();
+        let class_id = self.get_obj_class(obj_ref);
+        let class = &ma.classes[class_id];
+
+        let layout = if let Some(elem_ty) = &class.elem_ty {
+            // We know it's an array because the object has an array class
+            let arr = unsafe { obj_ref.cast_to_array() };
+            arr_layout(elem_ty, self.arr_len(arr)).0
+        } else {
+            Layout::from_size_align(class.size as usize, class.alignment as usize).unwrap()
+        };
+
+        let object_ptr = unsafe {
+            let ptr = alloc(layout);
+            ptr.copy_from(obj_ref.0.cast::<u8>(), layout.size());
+            ptr.cast::<Object>()
         };
 
         let obj_ref = ObjectRef(object_ptr);
@@ -282,6 +306,10 @@ impl ObjectRef {
 
     pub unsafe fn from_ptr(ptr: *mut Object) -> Option<ObjectRef> {
         (!ptr.is_null()).then_some(ObjectRef(ptr))
+    }
+
+    pub unsafe fn cast_to_array(self) -> ArrayRef {
+        ArrayRef(self.0.cast::<Array>())
     }
 }
 

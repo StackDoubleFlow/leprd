@@ -33,6 +33,7 @@ pub fn run_native(thread: &mut Thread, class: String, method: String) {
         ("java/lang/Runtime", "maxMemory") => runtime::max_memory(thread),
         ("java/lang/Object", "getClass") => object::get_class(thread),
         ("java/lang/Object", "hashCode") => object::hash_code(thread),
+        ("java/lang/Object", "clone") => object::clone(thread),
         ("java/lang/Class", "desiredAssertionStatus0") => class::desired_assertion_status(thread),
         ("java/lang/Class", "getPrimitiveClass") => class::get_primitive_class(thread),
         ("java/lang/Class", "isPrimitive") => class::is_primitive(thread),
