@@ -735,9 +735,15 @@ impl Thread {
                     self.operand_stack.push(Value::Int(instance_of as i32))
                 }
                 // monitorenter
-                194 => println!("todo inst: monitorenter"),
+                194 => {
+                    let _obj = self.pop().object();
+                    println!("todo inst: monitorenter");
+                }
                 // monitorexit
-                195 => println!("todo inst: monitorexit"),
+                195 => {
+                    let _obj = self.pop().object();
+                    println!("todo inst: monitorexit");
+                }
                 // ifnull, ifnonnull
                 198..=199 => {
                     let is_some = match self.pop() {

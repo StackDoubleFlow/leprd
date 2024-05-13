@@ -265,7 +265,12 @@ impl std::fmt::Debug for ValueDebugger {
                         }
                         let name = method_area().fields[field].name.clone();
                         let val = heap().load_field(obj, field).clone();
-                        dbg.field(&name, &ValueDebugger(val));
+                        if matches!(val, Value::Object(Some(_))) {
+                            // this is to avoid infinite recursion
+                            dbg.field(&name, &val);
+                        } else {
+                            dbg.field(&name, &ValueDebugger(val));
+                        }
                     }
                     match method_area().classes[cur_class].super_class {
                         Some(s) => cur_class = s,
