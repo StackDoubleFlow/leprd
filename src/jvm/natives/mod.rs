@@ -6,6 +6,7 @@ mod jdk_unsafe;
 mod object;
 mod reflection;
 mod runtime;
+mod signal;
 mod string;
 mod system;
 mod system_props;
@@ -19,6 +20,9 @@ pub fn run_native(thread: &mut Thread, class: String, method: String) {
         ("java/lang/Class", "registerNatives") => println!("stub: native Class.registerNatives"),
         ("jdk/internal/misc/Unsafe", "registerNatives") => {
             println!("stub: native Unsafe.registerNatives")
+        }
+        ("jdk/internal/misc/ScopedMemoryAccess", "registerNatives") => {
+            println!("stub: native ScopedMemoryAccess.registerNatives")
         }
         ("jdk/internal/misc/VM", "initialize") => println!("stub: native VM.initialize"),
         ("java/io/FileInputStream", "initIDs") => {
@@ -84,6 +88,8 @@ pub fn run_native(thread: &mut Thread, class: String, method: String) {
         ("jdk/internal/misc/Unsafe", "compareAndExchangeLong") => {
             jdk_unsafe::compare_and_exchange_long(thread)
         }
+        ("jdk/internal/misc/Signal", "findSignal0") => signal::find_signal(thread),
+        ("jdk/internal/misc/Signal", "handle0") => signal::handle(thread),
         ("jdk/internal/reflect/Reflection", "getCallerClass") => {
             reflection::get_caller_class(thread)
         }
