@@ -21,7 +21,10 @@ pub fn vm_properties(thread: &mut Thread) {
     prop!("java.home", env!("CARGO_MANIFEST_DIR"));
     prop!("java.vm.specification.version", "22");
     prop!("java.vm.specification.vendor", "Oracle");
-    prop!("java.vm.specification.name", "Java Virtual Machine Specification");
+    prop!(
+        "java.vm.specification.name",
+        "Java Virtual Machine Specification"
+    );
     prop!("java.vm.version", env!("CARGO_PKG_VERSION"));
     prop!("java.vm.vendor", env!("CARGO_PKG_AUTHORS"));
     prop!("java.vm.name", env!("CARGO_PKG_NAME"));
@@ -34,12 +37,18 @@ pub fn vm_properties(thread: &mut Thread) {
     prop!("os.version", whoami::distro());
     prop!("user.name", whoami::username());
     prop!("user.home", dirs::home_dir().unwrap().to_string_lossy());
-    prop!("user.dir", std::env::current_dir().unwrap().to_string_lossy());
+    prop!(
+        "user.dir",
+        std::env::current_dir().unwrap().to_string_lossy()
+    );
     prop!("native.encoding", "UTF-8");
     prop!("stdout.encoding", "UTF-8");
     prop!("stderr.encoding", "UTF-8");
 
-    let props: Vec<_> = props.into_iter().map(|prop| thread.create_string(&prop)).collect();
+    let props: Vec<_> = props
+        .into_iter()
+        .map(|prop| thread.create_string(&prop))
+        .collect();
 
     let mut heap = heap();
     let arr = heap.new_array(

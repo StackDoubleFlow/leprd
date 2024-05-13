@@ -278,7 +278,7 @@ impl std::fmt::Debug for ValueDebugger {
                 }
 
                 dbg.finish()
-            },
+            }
             Value::Object(None) | Value::Array(None) => write!(f, "null"),
             _ => write!(f, "{:?}", self.0),
         }

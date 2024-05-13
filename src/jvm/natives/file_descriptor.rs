@@ -1,9 +1,8 @@
-
-use std::os::fd::RawFd;
 use crate::jvm::Thread;
 use crate::value::Value;
 use nix::fcntl::{fcntl, FcntlArg};
 use nix::libc::O_APPEND;
+use std::os::fd::RawFd;
 
 pub fn get_handle(thread: &mut Thread) {
     let _fd = thread.pop().int();

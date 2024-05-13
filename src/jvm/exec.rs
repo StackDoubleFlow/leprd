@@ -666,7 +666,10 @@ impl Thread {
                         panic!("NullPointerException");
                     };
                     let class_id = heap().get_obj_class(throwable_obj);
-                    println!("An exception was thrown: {}", method_area().classes[class_id].name);
+                    println!(
+                        "An exception was thrown: {}",
+                        method_area().classes[class_id].name
+                    );
 
                     let mut ma = method_area();
                     let throwable_class = ma.resolve_class("java/lang/Throwable");

@@ -1,5 +1,6 @@
 mod cds;
 mod class;
+mod file_descriptor;
 mod float;
 mod jdk_unsafe;
 mod object;
@@ -9,7 +10,6 @@ mod string;
 mod system;
 mod system_props;
 mod throwable;
-mod file_descriptor;
 
 use super::Thread;
 
@@ -21,9 +21,15 @@ pub fn run_native(thread: &mut Thread, class: String, method: String) {
             println!("stub: native Unsafe.registerNatives")
         }
         ("jdk/internal/misc/VM", "initialize") => println!("stub: native VM.initialize"),
-        ("java/io/FileInputStream", "initIDs") => println!("stub: native java.io.FileInputStream.initIDs"),
-        ("java/io/FileOutputStream", "initIDs") => println!("stub: native java.io.FileInputStream.initIDs"),
-        ("java/io/FileDescriptor", "initIDs") => println!("stub: native java.io.FileInputStream.initIDs"),
+        ("java/io/FileInputStream", "initIDs") => {
+            println!("stub: native java.io.FileInputStream.initIDs")
+        }
+        ("java/io/FileOutputStream", "initIDs") => {
+            println!("stub: native java.io.FileInputStream.initIDs")
+        }
+        ("java/io/FileDescriptor", "initIDs") => {
+            println!("stub: native java.io.FileInputStream.initIDs")
+        }
 
         ("java/lang/System", "arraycopy") => system::arraycopy(thread),
         ("java/lang/System", "setIn0") => system::set_in(thread),
