@@ -209,10 +209,9 @@ impl Thread {
         let num_params = method.descriptor.0.len();
 
         let stack_obj_idx = self.operand_stack.len() - num_params - 1;
-        let obj = match self.operand_stack[stack_obj_idx] {
-            Value::Object(Some(obj)) => obj,
-            Value::Object(None) => panic!("NullPointerException"),
-            _ => unreachable!(),
+        let obj = match self.operand_stack[stack_obj_idx].object() {
+            Some(obj) => obj,
+            None => panic!("NullPointerException"),
         };
         let obj_class = heap().get_obj_class(obj);
 

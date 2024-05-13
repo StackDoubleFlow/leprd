@@ -311,12 +311,15 @@ impl ArrayRef {
 unsafe impl Send for ArrayRef {}
 unsafe impl Sync for ArrayRef {}
 
+// We need Object and Array to be repr(C) to guarantee the order of the fields are as written
 #[derive(Debug)]
+#[repr(C)]
 pub struct Object {
     class: ClassId,
 }
 
 #[derive(Debug)]
+#[repr(C)]
 pub struct Array {
     // Having Object as the first field allows us to cast array pointers to object pointers
     _obj: Object,
