@@ -188,9 +188,8 @@ impl Class {
         }
 
         let class_class = ma.resolve_class("java/lang/Class");
-        drop(ma);
-        let obj = heap().new_object(class_class);
-        method_area().class_objs.insert(obj, id);
+        let obj = heap().new_object(&mut ma, class_class);
+        ma.class_objs.insert(obj, id);
         // TODO: Initialize fields such as classLoader
         obj
     }

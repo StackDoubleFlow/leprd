@@ -1,6 +1,6 @@
 use crate::class::FieldBacking;
 use crate::class_file::descriptors::{BaseType, FieldType};
-use crate::class_loader::{method_area, ClassId, FieldId};
+use crate::class_loader::{method_area, ClassId, FieldId, MethodArea};
 use crate::value::{MatchesFieldType, Value};
 use std::alloc::{alloc, alloc_zeroed, Layout};
 use std::sync::{LazyLock, Mutex, MutexGuard};
@@ -90,8 +90,7 @@ pub struct Heap {
 }
 
 impl Heap {
-    pub fn new_object(&mut self, class_id: ClassId) -> ObjectRef {
-        let ma = method_area();
+    pub fn new_object(&mut self, ma: &mut MethodArea, class_id: ClassId) -> ObjectRef {
         let class = &ma.classes[class_id];
         let layout =
             Layout::from_size_align(class.size as usize, class.alignment as usize).unwrap();
@@ -131,12 +130,12 @@ impl Heap {
         obj_ref
     }
 
-    pub fn new_array(&mut self, elem_ty: FieldType, len: usize) -> ArrayRef {
+    pub fn new_array(&mut self, ma: &mut MethodArea, elem_ty: FieldType, len: usize) -> ArrayRef {
         let (layout, offset, _) = arr_layout(&elem_ty, len);
 
         let array = Array {
             _obj: Object {
-                class: method_area().resolve_arr_class(&elem_ty),
+                class: ma.resolve_arr_class(&elem_ty),
             },
             ty: elem_ty,
             len,
@@ -209,8 +208,14 @@ impl Heap {
         }
     }
 
-    pub fn store_field(&mut self, obj_ref: ObjectRef, field_id: FieldId, val: Value) {
-        let field = &method_area().fields[field_id];
+    pub fn store_field(
+        &mut self,
+        ma: &MethodArea,
+        obj_ref: ObjectRef,
+        field_id: FieldId,
+        val: Value,
+    ) {
+        let field = &ma.fields[field_id];
         let offset = match field.backing {
             FieldBacking::Instance(offset) => offset,
             _ => panic!("tried to store into a static field with instance obj"),
@@ -291,6 +296,26 @@ impl Heap {
                 .collect::<Vec<_>>();
             String::from_utf16(&utf16).unwrap()
         }
+    }
+
+    pub fn create_string(&mut self, ma: &mut MethodArea, str: &str) -> ObjectRef {
+        let arr: Vec<i8> = str
+            .encode_utf16()
+            .flat_map(|x| x.to_ne_bytes())
+            .map(|b| b as i8)
+            .collect();
+        let arr_ref = self.new_array(ma, FieldType::BaseType(BaseType::B), arr.len());
+        self.array_contents(arr_ref).copy_from_slice(&arr);
+
+        let str_class = ma.resolve_class("java/lang/String");
+        let value_field = ma.resolve_field(str_class, "value");
+        let coder_field = ma.resolve_field(str_class, "coder");
+
+        let str_obj_id = self.new_object(ma, str_class);
+        self.store_field(ma, str_obj_id, value_field, Value::Array(Some(arr_ref)));
+        self.store_field(ma, str_obj_id, coder_field, Value::Byte(1));
+
+        str_obj_id
     }
 }
 

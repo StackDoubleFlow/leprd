@@ -2,7 +2,7 @@ use crate::class::{Class, Field, FieldBacking, Method, Reference};
 use crate::class_file::constant_pool::CPInfo;
 use crate::class_file::descriptors::{BaseType, FieldDescriptor, FieldType, MethodDescriptor};
 use crate::class_file::{fields, ClassFile};
-use crate::heap::{Object, ObjectRef};
+use crate::heap::{heap, Object, ObjectRef};
 use crate::value::Value;
 use crate::CONFIG;
 use deku::DekuContainerRead;
@@ -157,6 +157,13 @@ pub fn load_class_bootstrap(ma: &mut MethodArea, name: &str) -> ClassId {
     // Major version 66 corresponds to Java 22
     assert!((45..=66).contains(&class_file.major_version));
 
+    for attribute in class_file.attributes {
+        let name = class_file
+            .constant_pool
+            .utf8(attribute.attribute_name_index);
+        println!("Class Attribute: {}", name);
+    }
+
     let super_class_id = if class_file.super_class > 0 {
         let super_name = class_file.constant_pool.class_name(class_file.super_class);
         Some(ma.resolve_class(&super_name))
@@ -211,13 +218,40 @@ pub fn load_class_bootstrap(ma: &mut MethodArea, name: &str) -> ClassId {
 
     let mut fields = Vec::new();
     for field in class_file.fields {
-        let name = class_file.constant_pool.utf8(field.name_index);
+        let field_name = class_file.constant_pool.utf8(field.name_index);
         let descriptor = class_file.constant_pool.utf8(field.descriptor_index);
         let descriptor = FieldDescriptor::read(&descriptor);
 
+        let mut constant_val = None;
+        for attribute in field.attributes {
+            let attr_name = class_file
+                .constant_pool
+                .utf8(attribute.attribute_name_index);
+            println!("Field Attribute: {}", attr_name);
+            if attr_name == "ConstantValue" {
+                let cva = attribute.constant_value();
+                let cp_info = &class_file.constant_pool.table[cva.constantvalue_index as usize - 1];
+                let val = match cp_info {
+                    CPInfo::Integer { val } => Value::Int(*val).store_ty(&descriptor.0),
+                    CPInfo::Float { val } => Value::Float(*val),
+                    CPInfo::Double { val } => Value::Double(*val),
+                    CPInfo::Long { val } => Value::Long(*val),
+                    CPInfo::String { string_index } => {
+                        let str = class_file.constant_pool.utf8(*string_index);
+                        let str_obj = heap().create_string(ma, &str);
+                        Value::Object(Some(str_obj))
+                    }
+                    _ => panic!("Field ConstantValue attribute has incorrect type"),
+                };
+                constant_val = Some(val);
+            }
+        }
+
         let is_static = field.access_flags & fields::acc::STATIC != 0;
         let backing = if is_static {
-            FieldBacking::StaticValue(Value::default_for_ty(&descriptor.0))
+            FieldBacking::StaticValue(
+                constant_val.unwrap_or_else(|| Value::default_for_ty(&descriptor.0)),
+            )
         } else {
             let (field_size, field_alignment) = size_and_alignment_of_field(&descriptor);
             let padding = size % field_alignment as u32;
@@ -229,7 +263,7 @@ pub fn load_class_bootstrap(ma: &mut MethodArea, name: &str) -> ClassId {
         };
 
         let id = ma.fields.alloc(Field {
-            name,
+            name: field_name,
             defining_class: class_id,
             access_flags: field.access_flags,
             descriptor,

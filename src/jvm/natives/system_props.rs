@@ -1,4 +1,5 @@
 use crate::class_file::descriptors::{FieldType, ObjectType};
+use crate::class_loader::method_area;
 use crate::heap::{heap, ArrayRef};
 use crate::jvm::Thread;
 use crate::value::Value;
@@ -47,11 +48,12 @@ pub fn vm_properties(thread: &mut Thread) {
 
     let props: Vec<_> = props
         .into_iter()
-        .map(|prop| thread.create_string(&prop))
+        .map(|prop| heap().create_string(&mut method_area(), &prop))
         .collect();
 
     let mut heap = heap();
     let arr = heap.new_array(
+        &mut method_area(),
         FieldType::ObjectType(ObjectType {
             class_name: "java/lang/String".to_string(),
         }),
@@ -66,6 +68,7 @@ pub fn vm_properties(thread: &mut Thread) {
 
 pub fn platform_properties(thread: &mut Thread) {
     let arr = heap().new_array(
+        &mut method_area(),
         FieldType::ObjectType(ObjectType {
             class_name: "java/lang/String".to_string(),
         }),

@@ -41,7 +41,7 @@ macro_rules! cast {
 impl Thread {
     fn ldc(&mut self, cp_idx: u16) {
         let class_id = self.class_id();
-        let ma = method_area();
+        let mut ma = method_area();
         let cp_info = &ma.classes[class_id].constant_pool.table[cp_idx as usize - 1];
         let val = match *cp_info {
             CPInfo::Integer { val } => Value::Int(val),
@@ -49,11 +49,8 @@ impl Thread {
             CPInfo::Long { val } => Value::Long(val),
             CPInfo::Double { val } => Value::Double(val),
             CPInfo::String { string_index } => {
-                drop(ma);
-                let str = method_area().classes[class_id]
-                    .constant_pool
-                    .utf8(string_index);
-                Value::Object(Some(self.create_string(&str)))
+                let str = ma.classes[class_id].constant_pool.utf8(string_index);
+                Value::Object(Some(heap().create_string(&mut ma, &str)))
             }
             CPInfo::Class { .. } => {
                 drop(ma);
@@ -569,8 +566,7 @@ impl Thread {
                     let ma = method_area();
                     let ty = &ma.fields[field].descriptor.0;
                     let store_val = val.store_ty(&ty);
-                    drop(ma);
-                    heap().store_field(obj, field, store_val);
+                    heap().store_field(&ma, obj, field, store_val);
                 }
                 // invokevirtual
                 182 => {
@@ -616,7 +612,7 @@ impl Thread {
                     let class_id = self.class_id();
                     let obj_class = Class::class_reference(class_id, idx);
                     self.ensure_initialized(obj_class);
-                    let obj_ref = heap().new_object(obj_class);
+                    let obj_ref = heap().new_object(&mut method_area(), obj_class);
                     self.operand_stack.push(Value::Object(Some(obj_ref)))
                 }
                 // newarray
@@ -635,7 +631,7 @@ impl Thread {
                         11 => FieldType::BaseType(BaseType::J),
                         _ => panic!(),
                     };
-                    let arr = heap().new_array(ty, count as usize);
+                    let arr = heap().new_array(&mut method_area(), ty, count as usize);
                     self.operand_stack.push(Value::Array(Some(arr)));
                 }
                 // anewarray
@@ -648,7 +644,7 @@ impl Thread {
                     assert!(count >= 0, "NegativeArraySizeException");
 
                     let ty = FieldType::ObjectType(ObjectType { class_name });
-                    let arr = heap().new_array(ty, count as usize);
+                    let arr = heap().new_array(&mut method_area(), ty, count as usize);
                     self.operand_stack.push(Value::Array(Some(arr)));
                 }
                 // arraylength

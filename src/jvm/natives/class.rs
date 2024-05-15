@@ -68,8 +68,7 @@ pub fn init_class_name(thread: &mut Thread) {
 
     let class = ma.class_objs[&class_class_obj];
     let name = ma.classes[class].name.clone();
-    drop(ma);
-    let str_obj = Value::Object(Some(thread.create_string(&name)));
-    heap().store_field(class_class_obj, name_field, str_obj);
+    let str_obj = Value::Object(Some(heap().create_string(&mut ma, &name)));
+    heap().store_field(&ma, class_class_obj, name_field, str_obj);
     thread.operand_stack.push(str_obj);
 }

@@ -16,6 +16,12 @@ impl AttributeInfo {
             .expect("ClassFormatError")
             .1
     }
+
+    pub fn constant_value(&self) -> ConstantValueAttribute {
+        ConstantValueAttribute::from_bytes((&self.info, 0))
+            .expect("ClassFormatError")
+            .1
+    }
 }
 
 #[derive(DekuRead, Debug)]
@@ -41,4 +47,10 @@ pub struct CodeAttribute {
     pub attributes_count: u16,
     #[deku(count = "attributes_count")]
     pub attributes: Vec<AttributeInfo>,
+}
+
+#[derive(DekuRead, Debug)]
+#[deku(endian = "big")]
+pub struct ConstantValueAttribute {
+    pub constantvalue_index: u16,
 }

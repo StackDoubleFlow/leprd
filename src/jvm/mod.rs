@@ -152,29 +152,6 @@ impl Thread {
         }
     }
 
-    fn create_string(&mut self, str: &str) -> ObjectRef {
-        let arr: Vec<i8> = str
-            .encode_utf16()
-            .flat_map(|x| x.to_ne_bytes())
-            .map(|b| b as i8)
-            .collect();
-        let arr_ref = heap().new_array(FieldType::BaseType(BaseType::B), arr.len());
-        heap().array_contents(arr_ref).copy_from_slice(&arr);
-
-        let mut ma = method_area();
-        let str_class = ma.resolve_class("java/lang/String");
-        let value_field = ma.resolve_field(str_class, "value");
-        let coder_field = ma.resolve_field(str_class, "coder");
-        drop(ma);
-
-        let mut heap = heap();
-        let str_obj_id = heap.new_object(str_class);
-        heap.store_field(str_obj_id, value_field, Value::Array(Some(arr_ref)));
-        heap.store_field(str_obj_id, coder_field, Value::Byte(1));
-
-        str_obj_id
-    }
-
     fn br_if(&mut self, cur_pc: usize, cond: bool) {
         let target = cur_pc as isize + self.read_u16() as i16 as isize;
         if cond {
