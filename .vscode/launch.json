@@ -7,15 +7,15 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'rjvm2'",
+            "name": "Debug executable 'leprd'",
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=rjvm2",
-                    "--package=rjvm2"
+                    "--bin=leprd",
+                    "--package=leprd"
                 ],
                 "filter": {
-                    "name": "rjvm2",
+                    "name": "leprd",
                     "kind": "bin"
                 }
             },
@@ -25,16 +25,16 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in executable 'rjvm2'",
+            "name": "Debug unit tests in executable 'leprd'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
-                    "--bin=rjvm2",
-                    "--package=rjvm2"
+                    "--bin=leprd",
+                    "--package=leprd"
                 ],
                 "filter": {
-                    "name": "rjvm2",
+                    "name": "leprd",
                     "kind": "bin"
                 }
             },
