@@ -1,6 +1,7 @@
 mod cds;
 mod class;
 mod file_descriptor;
+mod finalizer;
 mod float;
 mod jdk_unsafe;
 mod object;
@@ -54,6 +55,9 @@ pub fn run_native(thread: &mut Thread, class: String, method: String) {
         ("java/lang/Double", "longBitsToDouble") => float::long_bits_to_double(thread),
         ("java/lang/Double", "doubleToRawLongBits") => float::double_to_long_bits(thread),
         ("java/lang/Throwable", "fillInStackTrace") => throwable::fill_in_stack_trace(thread),
+        ("java/lang/ref/Finalizer", "isFinalizationEnabled") => {
+            finalizer::is_finalization_enabled(thread)
+        }
         ("java/io/FileDescriptor", "getHandle") => file_descriptor::get_handle(thread),
         ("java/io/FileDescriptor", "getAppend") => file_descriptor::get_append(thread),
         ("jdk/internal/misc/CDS", "isDumpingClassList0") => cds::is_dumping_class_list(thread),

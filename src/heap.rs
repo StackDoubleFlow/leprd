@@ -29,7 +29,8 @@ fn layout_for_field(field_ty: &FieldType) -> Layout {
     }
 }
 
-/// Gets the layout for an array in memory. Returns the complete layout of the array, the offset to the start of the elements, and the stride.
+/// Gets the layout for an array in memory. Returns the complete layout of the array, the offset to
+/// the start of the elements, and the stride.
 pub fn arr_layout(elem_ty: &FieldType, len: usize) -> (Layout, usize, usize) {
     let base_layout = Layout::new::<Array>();
     let (arr_layout, stride) = layout_for_field(elem_ty).repeat(len).unwrap();

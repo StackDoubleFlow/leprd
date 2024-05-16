@@ -1,7 +1,6 @@
 use crate::class_file::attributes::CodeAttribute;
 use crate::class_file::descriptors::{FieldDescriptor, FieldType, MethodDescriptor};
-use crate::class_file::fields;
-use crate::class_file::ConstantPool;
+use crate::class_file::{fields, ConstantPool};
 use crate::class_loader::{method_area, ClassId, ClassLoader, FieldId, MethodArea, MethodId};
 use crate::heap::{heap, ObjectRef};
 use crate::value::Value;
@@ -225,7 +224,8 @@ impl Class {
                     }
                 };
             } else {
-                // TODO: also check if `of` is one of the interfaces implemented by array (JLS 4.10.3)
+                // TODO: also check if `of` is one of the interfaces implemented by array (JLS
+                // 4.10.3)
                 return of == ma.resolve_class("java/lang/Object");
             }
         }

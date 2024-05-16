@@ -68,7 +68,7 @@ impl Thread {
         method_area().methods[self.method].defining_class
     }
 
-    fn call_method(&mut self, method_id: MethodId) {
+    pub fn call_method(&mut self, method_id: MethodId) {
         let ma = method_area();
         let method = &ma.methods[method_id];
         let is_static = method.access_flags & methods::acc::STATIC != 0;
@@ -133,7 +133,7 @@ impl Thread {
         );
     }
 
-    fn ensure_initialized(&mut self, class_id: ClassId) {
+    pub fn ensure_initialized(&mut self, class_id: ClassId) {
         let mut ma = method_area();
         let class = &mut ma.classes[class_id];
         if !class.initialized {
