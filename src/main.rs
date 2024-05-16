@@ -46,5 +46,6 @@ fn main() {
         "main",
         &MethodDescriptor::read("([Ljava/lang/String;)V"),
     );
+    drop(ma);
     thread.call_method(method);
 }
